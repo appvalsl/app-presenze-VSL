@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inserimento Presenze</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/config.js"></script>
+  <script src="./js/supabase-client.js"></script>
+  <script src="./js/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="brand-mark">IP</div>
+        <div>
+          <h1 class="app-title">Inserimento Presenze</h1>
+          <p class="app-subtitle">Gestione presenze giornaliere linea produttiva</p>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <span id="userBadge" class="user-badge hidden"></span>
+        <button id="logoutBtn" class="btn btn-secondary hidden" type="button">Logout</button>
+      </div>
+    </header>
+
+    <main class="page">
+      <section id="authSection" class="auth-section">
+        <div class="card auth-card">
+          <div class="card-header">
+            <h2>Accedi</h2>
+            <p>Inserisci le credenziali autorizzate per usare l'applicazione.</p>
+          </div>
+
+          <div id="authErrors" class="message hidden" role="alert" aria-live="polite"></div>
+
+          <div class="form-grid single-col">
+            <div class="field">
+              <label for="emailInput">Email</label>
+              <input id="emailInput" type="email" autocomplete="username" inputmode="email" placeholder="nome@azienda.it">
+            </div>
+
+            <div class="field">
+              <label for="passwordInput">Password</label>
+              <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Password">
+            </div>
+
+            <div class="actions">
+              <button id="loginBtn" class="btn btn-primary btn-block" type="button">Accedi</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="appSection" class="app-section hidden">
+        <div id="globalMessage" class="message hidden" role="alert" aria-live="polite"></div>
+
+        <section id="setupView" class="view">
+          <div class="card">
+            <div class="wizard-top">
+              <div class="wizard-headline">
+                <div class="step-badge-wrap">
+                  <span id="stepBadge" class="step-badge">Step 1 di 3</span>
+                </div>
+                <div class="wizard-title-wrap">
+                  <h2>Setup giornata</h2>
+                  <p>Configura linea, orari e parametri prima di caricare gli operatori.</p>
+                </div>
+              </div>
+
+              <div class="progress-wrap" aria-hidden="true">
+                <div class="progress-bar">
+                  <div id="progressFill" class="progress-fill"></div>
+                </div>
+              </div>
+            </div>
+
+            <div id="wizardErrors" class="message hidden" role="alert" aria-live="polite"></div>
+
+            <div id="step1" class="wizard-step" data-step="1">
+              <h3>Step 1 - Seleziona linea di produzione</h3>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="lineSelect">Linea di produzione</label>
+                  <select id="lineSelect">
+                    <option value="">Seleziona una linea</option>
+                    <option value="CALZOLERIA 1">CALZOLERIA 1</option>
+                    <option value="CALZOLERIA 2">CALZOLERIA 2</option>
+                    <option value="RIFINITURA 1">RIFINITURA 1</option>
+                    <option value="RIFINITURA 2">RIFINITURA 2</option>
+                    <option value="MAGAZZINO SEMILAVORATI">MAGAZZINO SEMILAVORATI</option>
+                    <option value="MAGAZZINO SPEDIZIONI">MAGAZZINO SPEDIZIONI</option>
+                    <option value="CONTROLLO TOMAIA">CONTROLLO TOMAIA</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div id="step2" class="wizard-step hidden" data-step="2">
+              <h3>Step 2 - Parametri giornata</h3>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="workDate">Data</label>
+                  <input id="workDate" type="date">
+                </div>
+
+                <div class="field">
+                  <label for="startTime">Inizio</label>
+                  <input id="startTime" type="time">
+                  <div class="quick-buttons">
+                    <button type="button" class="quick-btn" data-target="startTime" data-value="07:30">07:30</button>
+                    <button type="button" class="quick-btn" data-target="startTime" data-value="08:00">08:00</button>
+                    <button type="button" class="quick-btn" data-target="startTime" data-value="08:30">08:30</button>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label for="endTime">Fine</label>
+                  <input id="endTime" type="time">
+                  <div class="quick-buttons">
+                    <button type="button" class="quick-btn" data-target="endTime" data-value="15:00">15:00</button>
+                    <button type="button" class="quick-btn" data-target="endTime" data-value="17:00">17:00</button>
+                    <button type="button" class="quick-btn" data-target="endTime" data-value="17:30">17:30</button>
+                    <button type="button" class="quick-btn" data-target="endTime" data-value="18:00">18:00</button>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label for="lunchMin">Pausa pranzo min</label>
+                  <input id="lunchMin" type="number" min="0" step="1" inputmode="numeric" value="0">
+                  <div class="quick-buttons">
+                    <button type="button" class="quick-btn" data-target="lunchMin" data-value="0">0</button>
+                    <button type="button" class="quick-btn" data-target="lunchMin" data-value="15">15</button>
+                    <button type="button" class="quick-btn" data-target="lunchMin" data-value="30">30</button>
+                    <button type="button" class="quick-btn" data-target="lunchMin" data-value="45">45</button>
+                    <button type="button" class="quick-btn" data-target="lunchMin" data-value="60">60</button>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label for="snackMin">Pausa snack min</label>
+                  <input id="snackMin" type="number" min="0" step="1" inputmode="numeric" value="0">
+                  <div class="quick-buttons">
+                    <button type="button" class="quick-btn" data-target="snackMin" data-value="0">0</button>
+                    <button type="button" class="quick-btn" data-target="snackMin" data-value="10">10</button>
+                    <button type="button" class="quick-btn" data-target="snackMin" data-value="15">15</button>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label for="stopsMin">Fermi min</label>
+                  <input id="stopsMin" type="number" min="0" step="1" inputmode="numeric" value="0">
+                  <div class="quick-buttons">
+                    <button type="button" class="quick-btn" data-target="stopsMin" data-value="0">0</button>
+                    <button type="button" class="quick-btn" data-target="stopsMin" data-value="5">5</button>
+                    <button type="button" class="quick-btn" data-target="stopsMin" data-value="10">10</button>
+                    <button type="button" class="quick-btn" data-target="stopsMin" data-value="15">15</button>
+                    <button type="button" class="quick-btn" data-target="stopsMin" data-value="30">30</button>
+                  </div>
+                </div>
+
+                <div class="field field-span-2">
+                  <label for="stopsNote">Nota fermi</label>
+                  <textarea id="stopsNote" rows="3" placeholder="Inserisci eventuali note sui fermi"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div id="step3" class="wizard-step hidden" data-step="3">
+              <h3>Step 3 - Riepilogo setup</h3>
+              <div id="setupSummaryBox" class="summary-box"></div>
+
+              <div class="actions split-actions">
+                <div></div>
+                <button id="loadOperatorsBtn" class="btn btn-primary" type="button">Carica operatori della linea</button>
+              </div>
+            </div>
+
+            <div class="wizard-nav">
+              <button id="wizardBackBtn" class="btn btn-secondary" type="button">Indietro</button>
+              <button id="wizardNextBtn" class="btn btn-primary" type="button">Avanti</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="rowsView" class="view hidden">
+          <div class="card">
+            <div class="rows-top">
+              <div>
+                <h2>Presenze giornaliere</h2>
+                <p>Compila i dettagli per ogni operatore e salva nel database.</p>
+              </div>
+
+              <div class="rows-top-right">
+                <span id="rowCountBadge" class="row-badge">0 righe</span>
+              </div>
+            </div>
+
+            <div id="rowsSetupSummary" class="summary-box compact"></div>
+            <div id="rowsErrors" class="message hidden" role="alert" aria-live="polite"></div>
+
+            <div class="actions toolbar">
+              <button id="backToSetupBtn" class="btn btn-secondary" type="button">Torna al setup</button>
+              <button id="saveRowsBtn" class="btn btn-primary" type="button">Salva nel database</button>
+            </div>
+
+            <div class="table-wrap">
+              <table class="attendance-table">
+                <thead>
+                  <tr>
+                    <th>Operatore</th>
+                    <th>Ore std</th>
+                    <th>Ore lavorate (h)</th>
+                    <th>Evento min</th>
+                    <th>Assemblea min</th>
+                    <th>Sciopero min</th>
+                    <th>Postazione</th>
+                    <th>Finali</th>
+                  </tr>
+                </thead>
+                <tbody id="attendanceTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
