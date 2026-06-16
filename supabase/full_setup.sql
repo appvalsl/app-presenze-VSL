@@ -1,0 +1,336 @@
+create extension if not exists pgcrypto;
+
+drop table if exists attendance_rows cascade;
+drop table if exists attendance_sessions cascade;
+drop table if exists operators cascade;
+drop table if exists stations cascade;
+drop table if exists production_lines cascade;
+drop function if exists set_updated_at cascade;
+
+create table production_lines (
+  id uuid primary key default gen_random_uuid(),
+  code text unique not null,
+  name text unique not null,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table stations (
+  id uuid primary key default gen_random_uuid(),
+  line_name text not null references production_lines(name) on update cascade on delete cascade,
+  station_name text not null,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  unique(line_name, station_name)
+);
+
+create table operators (
+  id uuid primary key default gen_random_uuid(),
+  stabilimento text,
+  cognome text not null,
+  nome text not null,
+  idOperatore text not null,
+  idCdc text,
+  lineaProduzione text not null references production_lines(name) on update cascade,
+  macroLineaProduzione text,
+  postazione text,
+  oreStandard numeric(6,2) not null default 8,
+  created_at timestamptz not null default now(),
+  unique(idOperatore, lineaProduzione)
+);
+
+create table attendance_sessions (
+  id uuid primary key default gen_random_uuid(),
+  work_date date not null,
+  line_name text not null references production_lines(name) on update cascade,
+  start_time text not null,
+  end_time text not null,
+  lunch_min integer not null default 0,
+  snack_min integer not null default 0,
+  stops_min integer not null default 0,
+  stops_note text,
+  base_work_minutes integer not null default 0,
+  base_net_minutes integer not null default 0,
+  created_by uuid default auth.uid(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(work_date, line_name)
+);
+
+create table attendance_rows (
+  id uuid primary key default gen_random_uuid(),
+  attendance_session_id uuid not null references attendance_sessions(id) on delete cascade,
+  operator_id uuid references operators(id) on delete set null,
+  sort_order integer not null default 0,
+  stabilimento text,
+  cognome text not null,
+  nome text not null,
+  id_operatore text not null,
+  id_cdc text,
+  macro_linea_produzione text,
+  line_orig text,
+  line_day text not null,
+  postazione text,
+  ore_standard numeric(6,2) not null default 8,
+  work_min integer not null default 0,
+  evento_min integer not null default 0,
+  assemblea_min integer not null default 0,
+  sciopero_min integer not null default 0,
+  final_min integer not null default 0,
+  dirty boolean not null default false,
+  removed boolean not null default false,
+  created_by uuid default auth.uid(),
+  created_at timestamptz not null default now()
+);
+
+create or replace function set_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger trg_attendance_sessions_updated_at
+before update on attendance_sessions
+for each row
+execute function set_updated_at();
+
+alter table production_lines enable row level security;
+alter table stations enable row level security;
+alter table operators enable row level security;
+alter table attendance_sessions enable row level security;
+alter table attendance_rows enable row level security;
+
+drop policy if exists authenticated_read_production_lines on production_lines;
+create policy authenticated_read_production_lines
+on production_lines
+for select
+to authenticated
+using (true);
+
+drop policy if exists authenticated_read_stations on stations;
+create policy authenticated_read_stations
+on stations
+for select
+to authenticated
+using (true);
+
+drop policy if exists authenticated_read_operators on operators;
+create policy authenticated_read_operators
+on operators
+for select
+to authenticated
+using (true);
+
+drop policy if exists authenticated_read_attendance_sessions on attendance_sessions;
+create policy authenticated_read_attendance_sessions
+on attendance_sessions
+for select
+to authenticated
+using (true);
+
+drop policy if exists authenticated_insert_attendance_sessions on attendance_sessions;
+create policy authenticated_insert_attendance_sessions
+on attendance_sessions
+for insert
+to authenticated
+with check (true);
+
+drop policy if exists authenticated_update_attendance_sessions on attendance_sessions;
+create policy authenticated_update_attendance_sessions
+on attendance_sessions
+for update
+to authenticated
+using (true)
+with check (true);
+
+drop policy if exists authenticated_delete_attendance_sessions on attendance_sessions;
+create policy authenticated_delete_attendance_sessions
+on attendance_sessions
+for delete
+to authenticated
+using (true);
+
+drop policy if exists authenticated_read_attendance_rows on attendance_rows;
+create policy authenticated_read_attendance_rows
+on attendance_rows
+for select
+to authenticated
+using (true);
+
+drop policy if exists authenticated_insert_attendance_rows on attendance_rows;
+create policy authenticated_insert_attendance_rows
+on attendance_rows
+for insert
+to authenticated
+with check (true);
+
+drop policy if exists authenticated_update_attendance_rows on attendance_rows;
+create policy authenticated_update_attendance_rows
+on attendance_rows
+for update
+to authenticated
+using (true)
+with check (true);
+
+drop policy if exists authenticated_delete_attendance_rows on attendance_rows;
+create policy authenticated_delete_attendance_rows
+on attendance_rows
+for delete
+to authenticated
+using (true);
+
+insert into production_lines (code, name, sort_order) values
+  ('LINE_01','CALZOLERIA 1',1),
+  ('LINE_02','CALZOLERIA 2',2),
+  ('LINE_03','RIFINITURA 1',3),
+  ('LINE_04','RIFINITURA 2',4),
+  ('LINE_05','MAGAZZINO SEMILAVORATI',5),
+  ('LINE_06','MAGAZZINO SPEDIZIONI',6),
+  ('LINE_07','CONTROLLO TOMAIA',7)
+on conflict (name) do update
+set code = excluded.code,
+    sort_order = excluded.sort_order;
+
+insert into stations (line_name, station_name, sort_order) values
+  ('CALZOLERIA 1','Assente',1),
+  ('CALZOLERIA 1','Responsabile linea 1',2),
+  ('CALZOLERIA 1','Carico manovia',3),
+  ('CALZOLERIA 1','Premonta',4),
+  ('CALZOLERIA 1','Montaggio manuale',5),
+  ('CALZOLERIA 1','Carico e grattatura strutture',6),
+  ('CALZOLERIA 1','Ribattitura e rimozione chiodi',7),
+  ('CALZOLERIA 1','Sgrossatura e ribattitura',8),
+  ('CALZOLERIA 1','Segno a dima e boetta',9),
+  ('CALZOLERIA 1','Cardatura fine',10),
+  ('CALZOLERIA 1','Incollaggio suola',11),
+  ('CALZOLERIA 1','Incollaggio tomaia',12),
+  ('CALZOLERIA 1','Suolatura',13),
+  ('CALZOLERIA 1','Pulizia',14),
+  ('CALZOLERIA 1','Inchiodatura',15),
+  ('CALZOLERIA 2','Assente',1),
+  ('CALZOLERIA 2','Responsabile linea 2',2),
+  ('CALZOLERIA 2','Carico manovia',3),
+  ('CALZOLERIA 2','Premonta',4),
+  ('CALZOLERIA 2','Montaggio manuale',5),
+  ('CALZOLERIA 2','Calzera',6),
+  ('CALZOLERIA 2','Carico e grattatura strutture',7),
+  ('CALZOLERIA 2','Ribattitura e rimozione chiodi',8),
+  ('CALZOLERIA 2','Sgrossatura',9),
+  ('CALZOLERIA 2','Segno a dima e boetta',10),
+  ('CALZOLERIA 2','Cardatura fine',11),
+  ('CALZOLERIA 2','Incollaggio suola',12),
+  ('CALZOLERIA 2','Incollaggio tomaia',13),
+  ('CALZOLERIA 2','Suolatura',14),
+  ('CALZOLERIA 2','Pulizia',15),
+  ('CALZOLERIA 2','Inchiodatura',16)
+on conflict (line_name, station_name) do update
+set sort_order = excluded.sort_order;
+
+insert into operators (
+  stabilimento, cognome, nome, idOperatore, idCdc,
+  lineaProduzione, macroLineaProduzione, postazione, oreStandard
+) values
+  ('VSL Bucine','AGO','ABAS','AGO ABAS','VASED01310','CALZOLERIA 2','Linea di produzione 2','Cardatura fine',8.0),
+  ('VSL Bucine','ALDINUCCI','TAMARA','ALDINUCCI TAMARA','VASED01309','RIFINITURA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','BARTOLI','GIANLUCA','BARTOLI GIANLUCA','VASED01307','CALZOLERIA 1','Linea di produzione 1','Premonta',8.0),
+  ('VSL Bucine','BARTOLINI','PAOLA','BARTOLINI PAOLA','VASED01308','CONTROLLO TOMAIA','Controllo tomaia',null,8.0),
+  ('VSL Bucine','BASTIANELLI','MICHELA','BASTIANELLI MICHELA','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','BASTINI','NICOLA','BASTINI NICOLA','VASED01310','CALZOLERIA 2','Linea di produzione 2','Suolatura',8.0),
+  ('VSL Bucine','BECATTINI','MONICA','BECATTINI MONICA','VASED01309','RIFINITURA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','BECATTINI','VERUSKA','BECATTINI VERUSKA','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','BELLANTONIO','CARMELA','BELLANTONIO CARMELA','VASED01309','RIFINITURA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','BELLINI','PAOLO','BELLINI PAOLO','VASEI02312','MAGAZZINO SEMILAVORATI','Magazzino semilavorati e materie prime',null,8.0),
+  ('VSL Bucine','BEONE','ANNA','BEONE ANNA','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','BIAGIOTTI','ELEONORA','BIAGIOTTI ELEONORA','VASED01309','RIFINITURA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','BIANCHI','ANDREA','BIANCHI ANDREA','VASED01307','CALZOLERIA 1','Linea di produzione 1','Montaggio manuale',8.0),
+  ('VSL Bucine','BOTTI','PAOLO','BOTTI PAOLO','VASEI02312','MAGAZZINO SEMILAVORATI','Magazzino semilavorati e materie prime',null,8.0),
+  ('VSL Bucine','BUFFONI','ROBERTO','BUFFONI ROBERTO','VASED01310','CALZOLERIA 2','Linea di produzione 2','Premonta',8.0),
+  ('VSL Bucine','BUTERA','ANTONINO','BUTERA ANTONINO','VASED01307','CALZOLERIA 1','Linea di produzione 1','Montaggio manuale',8.0),
+  ('VSL Bucine','CALIENDO','MARIA ANTONIETTA','CALIENDO MARIA ANTONIETTA','VASED01309','RIFINITURA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','CALIENDO','PAOLA','CALIENDO PAOLA','VASED01309','RIFINITURA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','CALVELLI','ALESSANDRA','CALVELLI ALESSANDRA','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','CANTUCCI','LEANDRO RUBEN','CANTUCCI LEANDRO RUBEN','VASEI02311','MAGAZZINO SPEDIZIONI','Magazzino spedizioni',null,8.0),
+  ('VSL Bucine','CATERINO','MARCO','CATERINO MARCO','VASED01307','CALZOLERIA 1','Linea di produzione 1','Carico manovia',8.0),
+  ('VSL Bucine','CHIOREAN','IOAN ALEXANDRU','CHIOREAN IOAN ALEXANDRU','VASED01307','CALZOLERIA 1','Linea di produzione 1','Inchiodatura',8.0),
+  ('VSL Bucine','CORSI','FEDERICO','CORSI FEDERICO','VASED01307','CALZOLERIA 1','Linea di produzione 1','Cardatura fine',8.0),
+  ('VSL Bucine','CROCINI','VALENTINA','CROCINI VALENTINA','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','D''ANGELIS','LUCA','D''ANGELIS LUCA','VASED01310','CALZOLERIA 2','Linea di produzione 2','Calzera',8.0),
+  ('VSL Bucine','DE CESARE','ANDREA','DE CESARE ANDREA','VASED01310','CALZOLERIA 2','Linea di produzione 2','Incollaggio suola',8.0),
+  ('VSL Bucine','DE STEFANO','ADRIANO','DE STEFANO ADRIANO','VASED01310','CALZOLERIA 2','Linea di produzione 2','Segno a dima e boetta',8.0),
+  ('VSL Bucine','DEL VECCHIO','FRANCESCO','DEL VECCHIO FRANCESCO','VASED01307','CALZOLERIA 1','Linea di produzione 1','Premonta',8.0),
+  ('VSL Bucine','EL BIBAS','MUNIR','EL BIBAS MUNIR','VASEI02302','MAGAZZINO SEMILAVORATI','Magazzino semilavorati e materie prime',null,8.0),
+  ('VSL Bucine','ELISETTI','ROSSANA','ELISETTI ROSSANA','VASED01307','CALZOLERIA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','FABBRI','ANDREA','FABBRI ANDREA','VASED01307','CALZOLERIA 1','Linea di produzione 1','Responsabile linea 1',8.0),
+  ('VSL Bucine','BUTI','ALESSIO','BUTI ALESSIO','VASED01310','CALZOLERIA 2','Linea di produzione 2','Responsabile linea 2',8.0),
+  ('VSL Bucine','FERRARO','MARIA','FERRARO MARIA','VASED01310','CALZOLERIA 2','Linea di produzione 2','Incollaggio tomaia',8.0),
+  ('VSL Bucine','FERRERI','VINCENZO','FERRERI VINCENZO','VASEI02312','MAGAZZINO SEMILAVORATI','Magazzino semilavorati e materie prime',null,8.0),
+  ('VSL Bucine','FIORENTINO','LUCIA','FIORENTINO LUCIA','VASED01309','RIFINITURA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','GAGLIARDI','FABIOLA','GAGLIARDI FABIOLA','VASEI02311','MAGAZZINO SPEDIZIONI','Magazzino spedizioni',null,8.0),
+  ('VSL Bucine','GALLINARO','GIUSEPPA','GALLINARO GIUSEPPA','VASED01309','RIFINITURA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','GAROFANO','ISABELLA','GAROFANO ISABELLA','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','GAVAZZI','SIMONE','GAVAZZI SIMONE','VASED01307','CALZOLERIA 1','Linea di produzione 1','Suolatura',8.0),
+  ('VSL Bucine','GIUNTINI','MASSIMO','GIUNTINI MASSIMO','VASED01308','CONTROLLO TOMAIA','Controllo tomaia',null,8.0),
+  ('VSL Bucine','GOGA','BIANCA','GOGA BIANCA','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','GRANATELLO','SILVANA','GRANATELLO SILVANA','VASED01310','CALZOLERIA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','HAIDA','MOHAMMED','HAIDA MOHAMMED','VASED01307','CALZOLERIA 1','Linea di produzione 1','Carico e grattatura strutture',8.0),
+  ('VSL Bucine','LI GRECI','ALESSIO','LI GRECI ALESSIO','VASED01307','CALZOLERIA 1','Linea di produzione 1','Carico manovia',8.0),
+  ('VSL Bucine','LORETTI','GESSICA','LORETTI GESSICA','VASED01307','CALZOLERIA 1','Linea di produzione 1','Pulizia',8.0),
+  ('VSL Bucine','LUPI','EMANUELA','LUPI EMANUELA','VASEI02311','MAGAZZINO SPEDIZIONI','Magazzino spedizioni',null,8.0),
+  ('VSL Bucine','LUZAJ','URANI','LUZAJ URANI','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','MANETTI','GIOVANNA','MANETTI GIOVANNA','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','MARTINELLI','ANNAMARIA','MARTINELLI ANNAMARIA','VASED01308','CONTROLLO TOMAIA','Controllo tomaia',null,8.0),
+  ('VSL Bucine','MECHERI','SANDRA','MECHERI SANDRA','VASED01309','RIFINITURA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','MEROLLA','ALESSANDRA','MEROLLA ALESSANDRA','VASED01309','RIFINITURA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','MEUCCI','ANDREA','MEUCCI ANDREA','VASED01310','CALZOLERIA 2','Linea di produzione 2','Montaggio manuale',8.0),
+  ('VSL Bucine','MICCHI','PATRIZIA','MICCHI PATRIZIA','VASED01310','CALZOLERIA 2','Linea di produzione 2','Carico manovia',8.0),
+  ('VSL Bucine','MONTAGNA','OSVALDO','MONTAGNA OSVALDO','VASED01307','CALZOLERIA 1','Linea di produzione 1','Sgrossatura e ribattitura',8.0),
+  ('VSL Bucine','MORBIDELLI','STEFANIA','MORBIDELLI STEFANIA','VASED01308','CONTROLLO TOMAIA','Controllo tomaia',null,8.0),
+  ('VSL Bucine','MUZZI','CLAUDIA','MUZZI CLAUDIA','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','NASI','LEONARDO','NASI LEONARDO','VASEI02311','MAGAZZINO SPEDIZIONI','Magazzino spedizioni',null,8.0),
+  ('VSL Bucine','NISTA','MARIO','NISTA MARIO','VASEI02312','MAGAZZINO SEMILAVORATI','Magazzino semilavorati e materie prime',null,8.0),
+  ('VSL Bucine','NITA','ANCA ELVIRA','NITA ANCA ELVIRA','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','OLIVIERO','PAOLA','OLIVIERO PAOLA','VASED01308','CONTROLLO TOMAIA','Controllo tomaia',null,8.0),
+  ('VSL Bucine','OLTEANU','MIRELA','OLTEANU MIRELA','VASEI02312','MAGAZZINO SEMILAVORATI','Magazzino semilavorati e materie prime',null,8.0),
+  ('VSL Bucine','PAONE','ANTONIETTA','PAONE ANTONIETTA','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','PAPERINI','DANIELE','PAPERINI DANIELE','VASED01310','CALZOLERIA 2','Linea di produzione 2','Montaggio manuale',8.0),
+  ('VSL Bucine','PARRI','LORENZO','PARRI LORENZO','VASED01310','CALZOLERIA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','PERGOLI','ALESSANDRO','PERGOLI ALESSANDRO','VASEI02312','MAGAZZINO SEMILAVORATI','Magazzino semilavorati e materie prime',null,8.0),
+  ('VSL Bucine','POGGESI','ROBERTA','POGGESI ROBERTA','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','PRATESI','PIETRO','PRATESI PIETRO','VASED01310','CALZOLERIA 2','Linea di produzione 2','Ribattitura e rimozione chiodi',8.0),
+  ('VSL Bucine','PROVVEDI','MATTEO','PROVVEDI MATTEO','VASEI02312','MAGAZZINO SEMILAVORATI','Magazzino semilavorati e materie prime',null,8.0),
+  ('VSL Bucine','RABARBARI','ALESSANDRO','RABARBARI ALESSANDRO','VASEI02311','MAGAZZINO SPEDIZIONI','Magazzino spedizioni',null,8.0),
+  ('VSL Bucine','REGOLI','ROBERTA','REGOLI ROBERTA','VASED01307','CALZOLERIA 1','Linea di produzione 1','Carico manovia',8.0),
+  ('VSL Bucine','ROMITI','LORELLA','ROMITI LORELLA','VASEI02311','MAGAZZINO SPEDIZIONI','Magazzino spedizioni',null,8.0),
+  ('VSL Bucine','ROSSI','ANTONELLA','ROSSI ANTONELLA','VASED01309','RIFINITURA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','SANI','ISABELLA','SANI ISABELLA','VASED01308','CONTROLLO TOMAIA','Controllo tomaia','Incollaggio tomaia',8.0),
+  ('VSL Bucine','SANI','MARTINA','SANI MARTINA','VASED01307','CALZOLERIA 1','Linea di produzione 1','Incollaggio tomaia',8.0),
+  ('VSL Bucine','SARACINO','ROSA','SARACINO ROSA','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','SASSOLINI','SIMONE','SASSOLINI SIMONE','VASED01310','CALZOLERIA 2','Linea di produzione 2','Suolatura',8.0),
+  ('VSL Bucine','SAURO','DANIELE ANTONIO','SAURO DANIELE ANTONIO','VASEI02312','MAGAZZINO SEMILAVORATI','Magazzino semilavorati e materie prime',null,8.0),
+  ('VSL Bucine','SCALI','DEBORA','SCALI DEBORA','VASED01308','CONTROLLO TOMAIA','Controllo tomaia',null,8.0),
+  ('VSL Bucine','SCARANO','VALENTINA','SCARANO VALENTINA','VASED01308','CONTROLLO TOMAIA','Controllo tomaia',null,8.0),
+  ('VSL Bucine','SCARPATI','PAOLO','SCARPATI PAOLO','VASED01310','CALZOLERIA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','SCARPINO','PIETRO','SCARPINO PIETRO','VASEI02312','MAGAZZINO SEMILAVORATI','Magazzino semilavorati e materie prime',null,8.0),
+  ('VSL Bucine','SCARSELLI','ANDREA','SCARSELLI ANDREA','VASED01307','CALZOLERIA 1','Linea di produzione 1','Suolatura',8.0),
+  ('VSL Bucine','SESTINI','SILVIA','SESTINI SILVIA','VASED01309','RIFINITURA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','SEVERI','GIULIA','SEVERI GIULIA','VASED01309','RIFINITURA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','SINGH','JATINDER','SINGH JATINDER','VASED01307','CALZOLERIA 1','Linea di produzione 1','Cardatura fine',8.0),
+  ('VSL Bucine','SPUNTON','FABIO','SPUNTON FABIO','VASED01310','CALZOLERIA 2','Linea di produzione 2','Inchiodatura',8.0),
+  ('VSL Bucine','STIATTI','DINO','STIATTI DINO','VASED01310','CALZOLERIA 2','Linea di produzione 2','Pulizia',8.0),
+  ('VSL Bucine','TELLINI','DANIELE','TELLINI DANIELE','VASED01310','CALZOLERIA 2','Linea di produzione 2','Premonta',8.0),
+  ('VSL Bucine','TOMMASI','LEONARDO','TOMMASI LEONARDO','VASED01307','CALZOLERIA 1','Linea di produzione 1','Ribattitura e rimozione chiodi',8.0),
+  ('VSL Bucine','TRAVAGLINI','DARIO','TRAVAGLINI DARIO','VASED01310','CALZOLERIA 2','Linea di produzione 2','Carico manovia',8.0),
+  ('VSL Bucine','VAIRELLI','ELVIRA','VAIRELLI ELVIRA','VASED01306','RIFINITURA 1','Linea di produzione 1',null,8.0),
+  ('VSL Bucine','XHEBEXHIU','MEDIHA','XHEBEXHIU MEDIHA','VASED01307','CALZOLERIA 1','Linea di produzione 1','Incollaggio suola',8.0),
+  ('VSL Bucine','ZEOLI','MARIA GRAZIA','ZEOLI MARIA GRAZIA','VASED01309','RIFINITURA 2','Linea di produzione 2',null,8.0),
+  ('VSL Bucine','ZEVOLINI','MARIO','ZEVOLINI MARIO','VASED01307','CALZOLERIA 1','Linea di produzione 1','Segno a dima e boetta',8.0)
+on conflict (idOperatore, lineaProduzione) do update
+set stabilimento = excluded.stabilimento,
+    cognome = excluded.cognome,
+    nome = excluded.nome,
+    idCdc = excluded.idCdc,
+    macroLineaProduzione = excluded.macroLineaProduzione,
+    postazione = excluded.postazione,
+    oreStandard = excluded.oreStandard;
