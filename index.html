@@ -14,6 +14,7 @@
       <div class="app-title">Inserimento Presenze</div>
       <div class="app-subtitle" id="subtitle">Login</div>
     </div>
+
     <div class="header-actions">
       <span class="badge" id="statusBadge">—</span>
       <button id="btnLogout" class="btn btn-secondary hidden" type="button">Logout</button>
@@ -30,12 +31,22 @@
       <div class="grid grid-2">
         <label class="field">
           <span>Email</span>
-          <input id="loginEmail" type="email" placeholder="nome@azienda.it" autocomplete="username" />
+          <input
+            id="loginEmail"
+            type="email"
+            placeholder="nome@azienda.it"
+            autocomplete="username"
+          />
         </label>
 
         <label class="field">
           <span>Password</span>
-          <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
+          <input
+            id="loginPassword"
+            type="password"
+            placeholder="Password"
+            autocomplete="current-password"
+          />
         </label>
       </div>
 
@@ -46,7 +57,8 @@
       <div id="authErrors" class="errors hidden"></div>
 
       <p class="muted">
-        Gli utenti vanno creati manualmente da Supabase Authentication &gt; Users. Nell'app c'è solo il login.
+        Gli utenti vanno creati manualmente da Supabase Authentication &gt; Users.
+        Nell'app c'è solo il login.
       </p>
     </section>
 
@@ -62,16 +74,19 @@
         <div id="wizardProgressBar" class="wizard-progress-bar" style="width: 33.33%;"></div>
       </div>
 
+      <!-- STEP 1 -->
       <div id="step1" class="wizard-step">
         <div class="wizard-panel">
           <label class="field">
             <span>Linea di produzione</span>
             <select id="line"></select>
           </label>
+
           <div class="wizard-hint">Step 1 di 3 — Scegli una linea.</div>
         </div>
       </div>
 
+      <!-- STEP 2 -->
       <div id="step2" class="wizard-step hidden">
         <div class="wizard-panel">
           <div class="grid grid-2">
@@ -84,42 +99,93 @@
               <span>Nota fermi</span>
               <textarea id="stopsNote" placeholder="Opzionale"></textarea>
             </label>
+          </div>
 
-            <label class="field">
-              <span>Inizio</span>
-              <input id="startTime" type="time" />
-            </label>
+          <div class="grid grid-2 setup-quick-grid">
+            <div class="field-block">
+              <label class="field">
+                <span>Inizio</span>
+                <input id="startTime" type="time" />
+              </label>
 
-            <label class="field">
-              <span>Fine</span>
-              <input id="endTime" type="time" />
-            </label>
+              <div class="quick-buttons" data-target="startTime">
+                <button type="button" data-value="07:30">07:30</button>
+                <button type="button" data-value="08:00">08:00</button>
+                <button type="button" data-value="08:30">08:30</button>
+              </div>
+            </div>
 
-            <label class="field">
-              <span>Pausa pranzo (min)</span>
-              <input id="lunchMin" type="number" min="0" value="60" />
-            </label>
+            <div class="field-block">
+              <label class="field">
+                <span>Fine</span>
+                <input id="endTime" type="time" />
+              </label>
 
-            <label class="field">
-              <span>Pausa snack (min)</span>
-              <input id="snackMin" type="number" min="0" value="10" />
-            </label>
+              <div class="quick-buttons" data-target="endTime">
+                <button type="button" data-value="15:00">15:00</button>
+                <button type="button" data-value="17:00">17:00</button>
+                <button type="button" data-value="17:30">17:30</button>
+                <button type="button" data-value="18:00">18:00</button>
+              </div>
+            </div>
 
-            <label class="field">
-              <span>Fermi (min)</span>
-              <input id="stopsMin" type="number" min="0" value="0" />
-            </label>
+            <div class="field-block">
+              <label class="field">
+                <span>Pausa pranzo (min)</span>
+                <input id="lunchMin" type="number" min="0" value="60" />
+              </label>
+
+              <div class="quick-buttons" data-target="lunchMin">
+                <button type="button" data-value="0">0m</button>
+                <button type="button" data-value="15">15m</button>
+                <button type="button" data-value="30">30m</button>
+                <button type="button" data-value="45">45m</button>
+                <button type="button" data-value="60">60m</button>
+              </div>
+            </div>
+
+            <div class="field-block">
+              <label class="field">
+                <span>Pausa snack (min)</span>
+                <input id="snackMin" type="number" min="0" value="10" />
+              </label>
+
+              <div class="quick-buttons" data-target="snackMin">
+                <button type="button" data-value="0">0m</button>
+                <button type="button" data-value="10">10m</button>
+                <button type="button" data-value="15">15m</button>
+              </div>
+
+              <div class="field-help">Di prassi 10 minuti.</div>
+            </div>
+
+            <div class="field-block">
+              <label class="field">
+                <span>Fermi (min)</span>
+                <input id="stopsMin" type="number" min="0" value="0" />
+              </label>
+
+              <div class="quick-buttons" data-target="stopsMin">
+                <button type="button" data-value="0">0m</button>
+                <button type="button" data-value="5">5m</button>
+                <button type="button" data-value="10">10m</button>
+                <button type="button" data-value="15">15m</button>
+                <button type="button" data-value="30">30m</button>
+              </div>
+            </div>
           </div>
 
           <div class="wizard-hint">Step 2 di 3 — Inserisci i dati della giornata.</div>
         </div>
       </div>
 
+      <!-- STEP 3 -->
       <div id="step3" class="wizard-step hidden">
         <div class="wizard-panel">
           <div class="setup-review" id="setupReview">
             Nessun dato disponibile.
           </div>
+
           <div class="wizard-hint">
             Step 3 di 3 — Controlla il riepilogo e carica gli operatori della linea.
           </div>
@@ -127,9 +193,17 @@
       </div>
 
       <div class="wizard-nav">
-        <button id="btnPrevStep" class="btn btn-secondary hidden" type="button">← Indietro</button>
-        <button id="btnNextStep" class="btn btn-primary" type="button">Avanti →</button>
-        <button id="btnLoadRows" class="btn btn-success hidden" type="button">Carica operatori della linea</button>
+        <button id="btnPrevStep" class="btn btn-secondary hidden" type="button">
+          ← Indietro
+        </button>
+
+        <button id="btnNextStep" class="btn btn-primary" type="button">
+          Avanti →
+        </button>
+
+        <button id="btnLoadRows" class="btn btn-success hidden" type="button">
+          Carica operatori della linea
+        </button>
       </div>
 
       <div id="setupErrors" class="errors hidden"></div>
@@ -141,6 +215,7 @@
           <h2>Presenze</h2>
           <div id="setupSummary" class="muted"></div>
         </div>
+
         <div class="badge" id="rowsCount">Righe: 0</div>
       </div>
 
@@ -163,8 +238,13 @@
       </div>
 
       <div class="toolbar">
-        <button id="btnSaveDb" class="btn btn-success" type="button">Salva nel database</button>
-        <button id="btnBackSetup" class="btn btn-secondary" type="button">Torna al setup</button>
+        <button id="btnSaveDb" class="btn btn-success" type="button">
+          Salva nel database
+        </button>
+
+        <button id="btnBackSetup" class="btn btn-secondary" type="button">
+          Torna al setup
+        </button>
       </div>
 
       <div id="rowsErrors" class="errors hidden"></div>
