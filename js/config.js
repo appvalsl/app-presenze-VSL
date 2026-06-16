@@ -1,4 +1,0 @@
-window.APP_CONFIG = {
-  SUPABASE_URL: 'https://TUO-PROGETTO.supabase.co',
-  SUPABASE_ANON_KEY: 'INCOLLA_QUI_LA_TUA_ANON_KEY'
-};
