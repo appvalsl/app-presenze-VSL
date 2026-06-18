@@ -204,23 +204,36 @@
             <div id="rowsErrors" class="message hidden" role="alert" aria-live="polite"></div>
 
             <div class="actions toolbar">
-              <button id="backToSetupBtn" class="btn btn-secondary" type="button">Torna al setup</button>
-              <button id="saveRowsBtn" class="btn btn-primary" type="button">Salva nel database</button>
-            </div>
+  <button id="backToSetupBtn" class="btn btn-secondary" type="button">Torna al setup</button>
+
+  <div class="add-operator-box">
+    <select id="addOperatorSelect">
+      <option value="">Aggiungi operatore...</option>
+    </select>
+    <button id="addOperatorBtn" class="btn btn-secondary" type="button">Aggiungi operatore</button>
+  </div>
+
+  <button id="saveRowsBtn" class="btn btn-primary" type="button">Salva nel database</button>
+</div>
+
+
+
+            
 
             <div class="table-wrap">
               <table class="attendance-table">
                 <thead>
                   <tr>
-                    <th>Operatore</th>
-                    <th>Ore std</th>
-                    <th>Ore lavorate (h)</th>
-                    <th>Evento min</th>
-                    <th>Assemblea min</th>
-                    <th>Sciopero min</th>
-                    <th>Postazione</th>
-                    <th>Finali</th>
-                  </tr>
+  <th>Operatore</th>
+  <th>Ore std</th>
+  <th>Ore lavorate (h)</th>
+  <th>Evento min</th>
+  <th>Assemblea min</th>
+  <th>Sciopero min</th>
+  <th>Postazione</th>
+  <th>Finali</th>
+  <th>Azioni</th>
+</tr>
                 </thead>
                 <tbody id="attendanceTableBody"></tbody>
               </table>
