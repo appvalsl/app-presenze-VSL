@@ -530,7 +530,7 @@ const InserimentoPresenzeApp = (() => {
         final_min: Number(row.final_min) || 0,
         dirty: Boolean(row.dirty),
         removed: Boolean(row.removed),
-        created_by: state.user.email || state.user.id
+        created_by: state.user.id
       }));
 
       const insertResponse = await client
