@@ -209,17 +209,6 @@ const InserimentoPresenzeApp = (() => {
   }
 
   function bindEvents() {
-
-const toggle = document.getElementById("menuToggle");
-const menu = document.getElementById("topbarMenu");
-
-if (toggle) {
-  toggle.addEventListener("click", () => {
-    menu.classList.toggle("open");
-  });
-}
-
-    
     if (dom.loginBtn) {
       dom.loginBtn.addEventListener("click", handleLogin);
     }
@@ -359,8 +348,6 @@ if (toggle) {
       });
     }
 
-    
-
     if (dom.operatorsAdminTableBody) {
       dom.operatorsAdminTableBody.addEventListener("click", handleOperatorsAdminTableClick);
     }
@@ -493,23 +480,7 @@ if (toggle) {
 
       await loadOperatorsFromDatabase();
 
-      function renderAll() {
-  renderPermissions();
-  renderSetupForm();
-  renderWizard();
-  renderSetupSummary();
-  renderRowsSetupSummary();
-  renderRowsView();
-  renderOperatorsDatalist();
-  renderOperatorsFilters();
-  renderOperatorsAdmin();
-
-  // ✅ SCROLL AUTOMATICO IN ALTO
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
-}
+      renderAll();
 
       showBox(dom.globalMessage, "Login effettuato con successo.", "success");
 
@@ -1363,71 +1334,6 @@ if (toggle) {
   }
 
   function renderRowsView() {
-  if (!dom.attendanceTableBody) return;
-
-  const isMobile = window.innerWidth <= 768;
-
-  // ✅ MOBILE VIEW
-  if (isMobile) {
-    const container = document.getElementById("attendanceTableBody");
-    container.innerHTML = `
-      <div class="mobile-rows">
-        ${state.rows.map((row, index) => {
-          const operatorName = `${row.cognome} ${row.nome}`;
-
-          return `
-            <div class="mobile-card">
-
-              <h4>${operatorName}</h4>
-
-              <div class="mobile-row">
-                <span>Ore std</span>
-                <span>${row.ore_standard}</span>
-              </div>
-
-              <div class="mobile-row">
-                <span>Ore lavorate</span>
-              </div>
-              <input class="mobile-input"
-                type="number"
-                value="${minutesToHoursString(row.work_min)}"
-                data-row-index="${index}"
-                data-field="workHours"
-              >
-
-              <div class="mobile-row">
-                <span>Evento</span>
-              </div>
-              <input class="mobile-input"
-                type="number"
-                value="${row.evento_min}"
-                data-row-index="${index}"
-                data-field="evento_min"
-              >
-
-              <div class="mobile-row">
-                <span>Postazione</span>
-              </div>
-              <select class="mobile-input"
-                data-row-index="${index}"
-                data-field="postazione"
-              >
-                ${getStationOptions(state.setup.lineName, row.postazione)
-                  .map(s => `<option ${s===row.postazione?'selected':''}>${s}</option>`)
-                  .join("")}
-              </select>
-
-            </div>
-          `;
-        }).join("")}
-      </div>
-    `;
-    return;
-  }
-
-  // ✅ DESKTOP (rimane quello che avevi)
-  renderDesktopRows();
-} {
     if (dom.rowCountBadge) {
       dom.rowCountBadge.textContent =
         state.rows.length + " " + (state.rows.length === 1 ? "riga" : "righe");
@@ -1552,9 +1458,6 @@ if (toggle) {
       })
       .join("");
   }
-function renderDesktopRows() {
-  // qui lasci il tuo codice originale della tabella
-}
 
   function renderOperatorsDatalist() {
     if (!dom.operatorsDatalist) return;
