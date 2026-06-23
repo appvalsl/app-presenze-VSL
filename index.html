@@ -3,12 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <title>Inserimento Presenze</title>
 
   <link rel="stylesheet" href="./assets/styles.css">
 
-  <!-- ✅ CORRETTO -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./js/config.js"></script>
   <script src="./js/supabase-client.js"></script>
@@ -16,130 +14,102 @@
 </head>
 
 <body>
-  <div class="app-shell">
+<div class="app-shell">
 
-    <!-- TOPBAR -->
-    <header class="topbar">
-      <div class="topbar-left">
-        <div class="brand-mark">IP</div>
-        <div>
-          <h1 class="app-title">Inserimento Presenze</h1>
-          <p class="app-subtitle">Gestione presenze giornaliere linea produttiva</p>
-        </div>
-      </div>
-
-      <div class="topbar-right">
-        <div class="topbar-nav">
-          <button id="openAttendanceBtn" class="btn btn-secondary hidden">Presenze</button>
-          <button id="openOperatorsBtn" class="btn btn-secondary hidden">Operatori</button>
-        </div>
-
-        <span id="userBadge" class="user-badge hidden"></span>
-        <button id="logoutBtn" class="btn btn-secondary hidden">Logout</button>
-      </div>
-    </header>
-
-    <main class="page">
-
-      <!-- LOGIN -->
-      <section id="authSection" class="auth-section">
-        <div class="card auth-card">
-          <div class="card-header">
-            <h2>Accedi</h2>
-            <p>Inserisci le credenziali autorizzate.</p>
-          </div>
-
-          <div id="authErrors" class="message hidden"></div>
-
-          <div class="form-grid single-col">
-            <div class="field">
-              <label>Email</label>
-              <input id="emailInput" type="email">
-            </div>
-
-            <div class="field">
-              <label>Password</label>
-              <input id="passwordInput" type="password">
-            </div>
-
-            <button id="loginBtn" class="btn btn-primary btn-block">Accedi</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- APP -->
-      <section id="appSection" class="hidden">
-
-        <div id="globalMessage" class="message hidden"></div>
-
-        <section id="attendanceView">
-
-          <!-- STEP 2 MIGLIORATO -->
-          <div id="step2" class="card">
-
-            <h2>Setup giornata</h2>
-
-            <div class="grid-3">
-              <div class="field">
-                <label>Data</label>
-                <input id="workDate" type="date">
-              </div>
-
-              <div class="field">
-                <label>Inizio</label>
-                <input id="startTime" type="time">
-              </div>
-
-              <div class="field">
-                <label>Fine</label>
-                <input id="endTime" type="time">
-              </div>
-            </div>
-
-            <div class="card-section">
-              <h3>Struttura giornata</h3>
-
-              <div class="grid-3">
-                <div class="field">
-                  <label>Pausa pranzo (min)</label>
-                  <input id="lunchMin" type="number">
-                </div>
-
-                <div class="field">
-                  <label>Pausa snack (min)</label>
-                  <input id="snackMin" type="number">
-                </div>
-
-                <div class="field">
-                  <label>Fermi (min)</label>
-                  <input id="stopsMin" type="number">
-                </div>
-              </div>
-
-              <div class="field">
-                <label>Note fermi</label>
-                <textarea id="stopsNote"></textarea>
-              </div>
-            </div>
-
-            <div class="summary-highlight">
-              <div>
-                <span>Ore lavorabili</span>
-                <strong id="summaryWork">--</strong>
-              </div>
-
-              <div>
-                <span>Tempo produttivo</span>
-                <strong id="summaryNet">--</strong>
-              </div>
-            </div>
-
-          </div>
-        </section>
-
-      </section>
-
-    </main>
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="brand-mark">IP</div>
+    <div>
+      <h1 class="app-title">Inserimento Presenze</h1>
+      <p class="app-subtitle">Gestione presenze giornaliere linea produttiva</p>
+    </div>
   </div>
+
+  <div class="topbar-right">
+    <button id="openAttendanceBtn" class="btn btn-secondary hidden">Presenze</button>
+    <button id="openOperatorsBtn" class="btn btn-secondary hidden">Operatori</button>
+    <span id="userBadge" class="user-badge hidden"></span>
+    <button id="logoutBtn" class="btn btn-secondary hidden">Logout</button>
+  </div>
+</header>
+
+<main class="page">
+
+<!-- LOGIN -->
+<section id="authSection">
+  <div class="card auth-card">
+    <h2>Accesso</h2>
+
+    <input id="emailInput" type="email" placeholder="Email">
+    <input id="passwordInput" type="password" placeholder="Password">
+
+    <button id="loginBtn" class="btn btn-primary btn-block">Accedi</button>
+    <div id="authErrors" class="message hidden"></div>
+  </div>
+</section>
+
+<!-- APP -->
+<section id="appSection" class="hidden">
+
+<div id="attendanceView">
+
+<!-- STEP 1 -->
+<div id="step1" class="card wizard-step">
+  <h3>Linea produzione</h3>
+
+  <select id="lineSelect">
+    <option value="">Seleziona</option>
+    <option>CALZOLERIA 1</option>
+    <option>CALZOLERIA 2</option>
+  </select>
+</div>
+
+<!-- ✅ STEP 2 MIGLIORATO -->
+<div id="step2" class="card wizard-step hidden">
+
+<h2>Parametri giornata</h2>
+
+<div class="grid-3">
+  <input id="workDate" type="date">
+  <input id="startTime" type="time">
+  <input id="endTime" type="time">
+</div>
+
+<div class="card-section">
+  <h3>Struttura giornata</h3>
+
+  <div class="grid-3">
+    <input id="lunchMin" type="number" placeholder="Pausa pranzo">
+    <input id="snackMin" type="number" placeholder="Snack">
+    <input id="stopsMin" type="number" placeholder="Fermi">
+  </div>
+
+  <textarea id="stopsNote" placeholder="Note"></textarea>
+</div>
+
+<div class="summary-highlight">
+  <div>Ore lavorabili <strong id="summaryWork">--</strong></div>
+  <div>Tempo produttivo <strong id="summaryNet">--</strong></div>
+</div>
+
+</div>
+
+<!-- STEP 3 -->
+<div id="step3" class="card wizard-step hidden">
+  <div id="setupSummaryBox"></div>
+  <button id="loadOperatorsBtn" class="btn btn-primary">Carica operatori</button>
+</div>
+
+<!-- NAV -->
+<div class="wizard-nav">
+  <button id="wizardBackBtn" class="btn btn-secondary">Indietro</button>
+  <button id="wizardNextBtn" class="btn btn-primary">Avanti</button>
+</div>
+
+</div>
+</section>
+
+</main>
+</div>
 </body>
 </html>
