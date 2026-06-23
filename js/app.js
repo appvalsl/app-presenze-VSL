@@ -1,8 +1,11 @@
-console.log('Inserimento Presenze: app.js caricato');console.log('Inserimento Pres InserimentoPresenzeApp = (() => {
+console.log('Inserimento Presenze: app.js caricato');
+
+const InserimentoPresenzeApp = (() => {
   'use strict';
 
   const STORAGE_KEY = (window.APP_CONFIG && window.APP_CONFIG.STORAGE_KEY) || 'inserimento-presenze-state';
   const client = window.AppSupabase ? window.AppSupabase.getClient() : null;
+
 
   const STATIONS_BY_LINE = {
     'CALZOLERIA 1': [
