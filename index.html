@@ -4,9 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Inserimento Presenze</title>
-
   <link rel="stylesheet" href="./assets/styles.css">
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./js/config.js"></script>
   <script src="./js/supabase-client.js"></script>
@@ -22,7 +20,6 @@
           <p class="app-subtitle">Gestione presenze giornaliere linea produttiva</p>
         </div>
       </div>
-
       <div class="topbar-right">
         <div class="topbar-nav">
           <button id="openAttendanceBtn" class="btn btn-secondary hidden" type="button">Presenze</button>
@@ -40,20 +37,16 @@
             <h2>Accedi</h2>
             <p>Inserisci le credenziali autorizzate per usare l'applicazione.</p>
           </div>
-
           <div id="authErrors" class="message hidden" role="alert" aria-live="polite"></div>
-
           <div class="form-grid single-col">
             <div class="field">
               <label for="emailInput">Email</label>
               <input id="emailInput" type="email" autocomplete="username" inputmode="email" placeholder="nome@azienda.it">
             </div>
-
             <div class="field">
               <label for="passwordInput">Password</label>
               <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Password">
             </div>
-
             <div class="actions">
               <button id="loginBtn" class="btn btn-primary btn-block" type="button">Accedi</button>
             </div>
@@ -64,108 +57,117 @@
       <section id="appSection" class="app-section hidden">
         <div id="globalMessage" class="message hidden" role="alert" aria-live="polite"></div>
 
-        <!-- VISTA PRESENZE -->
         <section id="attendanceView" class="view">
           <section id="setupView" class="view">
             <div class="card">
-
               <div class="wizard-top">
                 <div class="wizard-headline">
-                  <div class="step-badge-wrap">
-                    <span id="stepBadge" class="step-badge">Step 1 di 3</span>
-                  </div>
+                  <div class="step-badge-wrap"><span id="stepBadge" class="step-badge">Step 1 di 3</span></div>
                   <div class="wizard-title-wrap">
                     <h2>Setup giornata</h2>
                     <p>Configura linea, orari e parametri prima di caricare gli operatori.</p>
                   </div>
                 </div>
-
-                <div class="progress-wrap">
-                  <div class="progress-bar">
-                    <div id="progressFill" class="progress-fill"></div>
-                  </div>
-                </div>
+                <div class="progress-wrap" aria-hidden="true"><div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div></div>
               </div>
 
-              <div id="wizardErrors" class="message hidden"></div>
+              <div id="wizardErrors" class="message hidden" role="alert" aria-live="polite"></div>
 
-              <div id="step1" class="wizard-step">
+              <div id="step1" class="wizard-step" data-step="1">
                 <h3>Step 1 - Seleziona linea di produzione</h3>
+                <div class="form-grid"><div class="field">
+                  <label for="lineSelect">Linea di produzione</label>
+                  <select id="lineSelect">
+                    <option value="">Seleziona una linea</option>
+                    <option value="CALZOLERIA 1">CALZOLERIA 1</option>
+                    <option value="CALZOLERIA 2">CALZOLERIA 2</option>
+                    <option value="RIFINITURA 1">RIFINITURA 1</option>
+                    <option value="RIFINITURA 2">RIFINITURA 2</option>
+                    <option value="MAGAZZINO SEMILAVORATI">MAGAZZINO SEMILAVORATI</option>
+                    <option value="MAGAZZINO SPEDIZIONI">MAGAZZINO SPEDIZIONI</option>
+                    <option value="CONTROLLO TOMAIA">CONTROLLO TOMAIA</option>
+                  </select>
+                </div></div>
+              </div>
+
+              <div id="step2" class="wizard-step hidden" data-step="2">
+                <h3>Step 2 - Parametri giornata</h3>
                 <div class="form-grid">
-                  <div class="field">
-                    <label for="lineSelect">Linea di produzione</label>
-                    <select id="lineSelect">
-                      <option value="">Seleziona una linea</option>
-                      <option value="CALZOLERIA 1">CALZOLERIA 1</option>
-                      <option value="CALZOLERIA 2">CALZOLERIA 2</option>
-                      <option value="RIFINITURA 1">RIFINITURA 1</option>
-                      <option value="RIFINITURA 2">RIFINITURA 2</option>
-                      <option value="MAGAZZINO SEMILAVORATI">MAGAZZINO SEMILAVORATI</option>
-                      <option value="MAGAZZINO SPEDIZIONI">MAGAZZINO SPEDIZIONI</option>
-                      <option value="CONTROLLO TOMAIA">CONTROLLO TOMAIA</option>
-                    </select>
-                  </div>
+                  <div class="field"><label for="workDate">Data</label><input id="workDate" type="date"></div>
+                  <div class="field"><label for="startTime">Inizio</label><input id="startTime" type="time"><div class="quick-buttons"><button type="button" class="quick-btn" data-target="startTime" data-value="07:30">07:30</button><button type="button" class="quick-btn" data-target="startTime" data-value="08:00">08:00</button><button type="button" class="quick-btn" data-target="startTime" data-value="08:30">08:30</button></div></div>
+                  <div class="field"><label for="endTime">Fine</label><input id="endTime" type="time"><div class="quick-buttons"><button type="button" class="quick-btn" data-target="endTime" data-value="15:00">15:00</button><button type="button" class="quick-btn" data-target="endTime" data-value="17:00">17:00</button><button type="button" class="quick-btn" data-target="endTime" data-value="17:30">17:30</button><button type="button" class="quick-btn" data-target="endTime" data-value="18:00">18:00</button></div></div>
+                  <div class="field"><label for="lunchMin">Pausa pranzo min</label><input id="lunchMin" type="number" min="0" step="1" inputmode="numeric" value="0"><div class="quick-buttons"><button type="button" class="quick-btn" data-target="lunchMin" data-value="0">0</button><button type="button" class="quick-btn" data-target="lunchMin" data-value="15">15</button><button type="button" class="quick-btn" data-target="lunchMin" data-value="30">30</button><button type="button" class="quick-btn" data-target="lunchMin" data-value="45">45</button><button type="button" class="quick-btn" data-target="lunchMin" data-value="60">60</button></div></div>
+                  <div class="field"><label for="snackMin">Pausa snack min</label><input id="snackMin" type="number" min="0" step="1" inputmode="numeric" value="0"><div class="quick-buttons"><button type="button" class="quick-btn" data-target="snackMin" data-value="0">0</button><button type="button" class="quick-btn" data-target="snackMin" data-value="10">10</button><button type="button" class="quick-btn" data-target="snackMin" data-value="15">15</button></div></div>
+                  <div class="field"><label for="stopsMin">Fermi min</label><input id="stopsMin" type="number" min="0" step="1" inputmode="numeric" value="0"><div class="quick-buttons"><button type="button" class="quick-btn" data-target="stopsMin" data-value="0">0</button><button type="button" class="quick-btn" data-target="stopsMin" data-value="5">5</button><button type="button" class="quick-btn" data-target="stopsMin" data-value="10">10</button><button type="button" class="quick-btn" data-target="stopsMin" data-value="15">15</button><button type="button" class="quick-btn" data-target="stopsMin" data-value="30">30</button></div></div>
+                  <div class="field field-span-2"><label for="stopsNote">Nota fermi</label><textarea id="stopsNote" rows="3" placeholder="Inserisci eventuali note sui fermi"></textarea></div>
                 </div>
               </div>
 
-              <!-- STEP 2 e 3 invariati (copiati correttamente dal tuo originale) -->
+              <div id="step3" class="wizard-step hidden" data-step="3">
+                <h3>Step 3 - Riepilogo setup</h3>
+                <div id="setupSummaryBox" class="summary-box"></div>
+                <div class="actions split-actions"><div></div><button id="loadOperatorsBtn" class="btn btn-primary" type="button">Carica operatori della linea</button></div>
+              </div>
 
               <div class="wizard-nav">
                 <button id="wizardBackBtn" class="btn btn-secondary" type="button">Indietro</button>
                 <button id="wizardNextBtn" class="btn btn-primary" type="button">Avanti</button>
               </div>
-
             </div>
           </section>
 
           <section id="rowsView" class="view hidden">
             <div class="card">
-              <div class="rows-top">
-                <div>
-                  <h2>Presenze giornaliere</h2>
-                  <p>Compila i dettagli per ogni operatore e salva nel database.</p>
-                </div>
-                <div class="rows-top-right">
-                  <span id="rowCountBadge" class="row-badge">0 righe</span>
-                </div>
-              </div>
-
+              <div class="rows-top"><div><h2>Presenze giornaliere</h2><p>Compila i dettagli per ogni operatore e salva nel database.</p></div><div class="rows-top-right"><span id="rowCountBadge" class="row-badge">0 righe</span></div></div>
               <div id="rowsSetupSummary" class="summary-box compact"></div>
-              <div id="rowsErrors" class="message hidden"></div>
-
-              <div class="actions toolbar">
-                <button id="backToSetupBtn" class="btn btn-secondary">Torna al setup</button>
-                <button id="saveRowsBtn" class="btn btn-primary">Salva nel database</button>
-              </div>
-
-              <div class="table-wrap">
-                <table class="attendance-table">
-                  <thead>
-                    <tr>
-                      <th>Operatore</th>
-                      <th>Ore std</th>
-                      <th>Ore lavorate (h)</th>
-                      <th>Evento min</th>
-                      <th>Assemblea min</th>
-                      <th>Sciopero min</th>
-                      <th>Postazione</th>
-                      <th>Finali</th>
-                    </tr>
-                  </thead>
-                  <tbody id="attendanceTableBody"></tbody>
-                </table>
-              </div>
+              <div id="rowsErrors" class="message hidden" role="alert" aria-live="polite"></div>
+              <div class="actions toolbar"><button id="backToSetupBtn" class="btn btn-secondary" type="button">Torna al setup</button><button id="saveRowsBtn" class="btn btn-primary" type="button">Salva nel database</button></div>
+              <div class="card inline-card add-operator-panel"><div class="card-header compact-header"><h3>Aggiungi operatore</h3><p>Cerca in tutto il database, non solo nella linea selezionata.</p></div><div class="add-operator-grid"><div class="field"><label for="addOperatorSearch">Cerca operatore nel database</label><input id="addOperatorSearch" list="operatorsDatalist" type="text" placeholder="Scrivi nome, cognome, ID operatore o linea" autocomplete="off"><datalist id="operatorsDatalist"></datalist></div><div class="field add-operator-btn-wrap"><label>&nbsp;</label><button id="addOperatorBtn" class="btn btn-secondary" type="button">Aggiungi operatore</button></div></div></div>
+              <div class="table-wrap"><table class="attendance-table"><thead><tr><th>Operatore</th><th>Ore std</th><th>Ore lavorate (h)</th><th>Evento min</th><th>Assemblea min</th><th>Sciopero min</th><th>Postazione</th><th>Finali</th></tr></thead><tbody id="attendanceTableBody"></tbody></table></div>
             </div>
           </section>
+        </section>
 
+        <section id="operatorsAdminView" class="view hidden">
+          <div class="card">
+            <div class="rows-top"><div><h2>Gestione operatori</h2><p>Sezione riservata agli utenti autorizzati.</p></div><div class="rows-top-right"><button id="newOperatorBtn" class="btn btn-primary hidden" type="button">Nuovo operatore</button></div></div>
+            <div id="operatorsAdminMessage" class="message hidden" role="alert" aria-live="polite"></div>
+            <div class="card inline-card"><div class="form-grid"><div class="field"><label for="operatorsSearchInput">Cerca</label><input id="operatorsSearchInput" type="text" placeholder="Nome, cognome, ID operatore, CDC"></div><div class="field"><label for="operatorsLineFilter">Filtro linea</label><select id="operatorsLineFilter"><option value="">Tutte le linee</option></select></div><div class="field"><label for="operatorsStatusFilter">Stato</label><select id="operatorsStatusFilter"><option value="active">Solo attivi</option><option value="all">Tutti</option><option value="inactive">Solo non attivi</option></select></div><div class="field"><label>&nbsp;</label><button id="refreshOperatorsBtn" class="btn btn-secondary" type="button">Aggiorna elenco</button></div></div></div>
+            <div id="operatorsAdminStats" class="summary-box compact"></div>
+            <div class="table-wrap"><table class="attendance-table operators-table"><thead><tr><th>Cognome</th><th>Nome</th><th>ID Operatore</th><th>CDC</th><th>Linea</th><th>Macro linea</th><th>Postazione</th><th>Ore std</th><th>Attivo</th><th>Azioni</th></tr></thead><tbody id="operatorsAdminTableBody"></tbody></table></div>
+          </div>
         </section>
       </section>
     </main>
   </div>
 
-  <!-- MODAL -->
-  <div id="confirmModal" class="hidden"></div>
-  <div id="operatorModal" class="hidden"></div>
+  <div id="confirmModal" class="modal-overlay hidden" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+      <div class="modal-header"><div><h2 id="confirmModalTitle">Conferma salvataggio</h2><p>Controlla il riepilogo per postazione prima di salvare definitivamente nel database.</p></div><button id="closeConfirmModalBtn" class="btn btn-secondary modal-close-btn" type="button">Chiudi</button></div>
+      <div id="confirmModalSummary" class="confirm-summary"></div>
+      <div class="actions split-actions modal-actions"><button id="cancelConfirmBtn" class="btn btn-secondary" type="button">Annulla</button><button id="confirmSaveBtn" class="btn btn-primary" type="button">Conferma e salva</button></div>
+    </div>
+  </div>
 
+  <div id="operatorModal" class="modal-overlay hidden" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="operatorModalTitle">
+      <div class="modal-header"><div><h2 id="operatorModalTitle">Operatore</h2><p>Compila i dati e salva l'anagrafica operatore.</p></div><button id="closeOperatorModalBtn" class="btn btn-secondary modal-close-btn" type="button">Chiudi</button></div>
+      <div id="operatorModalMessage" class="message hidden" role="alert" aria-live="polite"></div>
+      <input id="operatorFormId" type="hidden">
+      <div class="form-grid">
+        <div class="field"><label for="operatorSurnameInput">Cognome</label><input id="operatorSurnameInput" type="text" placeholder="Cognome"></div>
+        <div class="field"><label for="operatorNameInput">Nome</label><input id="operatorNameInput" type="text" placeholder="Nome"></div>
+        <div class="field"><label for="operatorIdCodeInput">ID Operatore</label><input id="operatorIdCodeInput" type="text" placeholder="ID operatore"></div>
+        <div class="field"><label for="operatorCdcInput">CDC</label><input id="operatorCdcInput" type="text" placeholder="CDC"></div>
+        <div class="field"><label for="operatorLineInput">Linea produzione</label><input id="operatorLineInput" type="text" placeholder="Es. CALZOLERIA 1"></div>
+        <div class="field"><label for="operatorMacroLineInput">Macro linea produzione</label><input id="operatorMacroLineInput" type="text" placeholder="Es. Linea di produzione 1"></div>
+        <div class="field"><label for="operatorStationInput">Postazione</label><input id="operatorStationInput" type="text" placeholder="Postazione"></div>
+        <div class="field"><label for="operatorStandardHoursInput">Ore standard</label><input id="operatorStandardHoursInput" type="number" min="0" step="0.25" inputmode="decimal" value="0"></div>
+        <div class="field"><label for="operatorPlantInput">Stabilimento</label><input id="operatorPlantInput" type="text" placeholder="Stabilimento"></div>
+        <div class="field"><label for="operatorIsActiveInput">Attivo</label><select id="operatorIsActiveInput"><option value="true">Sì</option><option value="false">No</option></select></div>
+      </div>
+      <div class="actions split-actions modal-actions"><button id="cancelOperatorModalBtn" class="btn btn-secondary" type="button">Annulla</button><button id="saveOperatorBtn" class="btn btn-primary" type="button">Salva operatore</button></div>
+    </div>
+  </div>
 </body>
 </html>
