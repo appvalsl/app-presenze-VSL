@@ -1050,11 +1050,14 @@ if (dom.refreshOperatorsBtn) {
 
     const rowToClone = state.rows[rowIndex];
 
-    const newRow = {
-      ...rowToClone,
-      sort_order: state.rows.length + 1,
-      dirty: true
-    };
+    
+const newRow = {
+  ...rowToClone,
+  ore_standard: 0,          // ✅ <-- AGGIUNTO QUI
+  sort_order: state.rows.length + 1,
+  dirty: true
+};
+
 
     state.rows.splice(rowIndex + 1, 0, newRow);
 
