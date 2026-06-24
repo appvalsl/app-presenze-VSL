@@ -1376,8 +1376,7 @@ const InserimentoPresenzeApp = (() => {
           "Operatore";
 
         const operatorMeta = [
-          row.id_cdc ? "CDC: " + row.id_cdc : null,
-          row.line_orig ? "Linea orig: " + row.line_orig : null
+
         ]
           .filter(Boolean)
           .join(" • ");
