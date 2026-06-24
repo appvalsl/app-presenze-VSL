@@ -137,10 +137,11 @@ const InserimentoPresenzeApp = (() => {
     dom.loadOperatorsBtn = document.getElementById("loadOperatorsBtn");
 
     dom.rowsSetupSummary = document.getElementById("rowsSetupSummary");
-    dom.rowCountBadge = document.getElementById("rowCountBadge");
-    dom.backToSetupBtn = document.getElementById("backToSetupBtn");
-    dom.saveRowsBtn = document.getElementById("saveRowsBtn");
-    dom.attendanceTableBody = document.getElementById("attendanceTableBody");
+dom.rowCountBadge = document.getElementById("rowCountBadge");
+dom.backToSetupBtn = document.getElementById("backToSetupBtn");
+dom.saveRowsBtn = document.getElementById("saveRowsBtn");
+dom.resetRowsBtn = document.getElementById("resetRowsBtn");
+dom.attendanceTableBody = document.getElementById("attendanceTableBody");
 
     dom.addOperatorSearch = document.getElementById("addOperatorSearch");
     dom.operatorsDatalist = document.getElementById("operatorsDatalist");
@@ -221,7 +222,9 @@ function handleResetRows() {
     return;
   }
 
-  const conferma = confirm("Sei sicuro di voler resettare tutte le presenze e tornare alle righe iniziali?");
+  const conferma = confirm(
+    "Sei sicuro di voler resettare tutte le presenze e tornare alle righe iniziali?"
+  );
 
   if (!conferma) {
     return;
