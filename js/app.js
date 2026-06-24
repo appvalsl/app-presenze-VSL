@@ -285,9 +285,9 @@ const InserimentoPresenzeApp = (() => {
     }
 
     if (dom.attendanceTableBody) {
-      dom.attendanceTableBody.addEventListener("input", handleRowTableInteraction);
-      dom.attendanceTableBody.addEventListener("change", handleRowTableInteraction);
-    }
+  dom.attendanceTableBody.addEventListener("input", handleRowTableInteraction);
+  dom.attendanceTableBody.addEventListener("change", handleRowTableInteraction);
+  dom.attendanceTableBody.addEventListener("click
 
     if (dom.closeConfirmModalBtn) {
       dom.closeConfirmModalBtn.addEventListener("click", closeConfirmModal);
@@ -1028,11 +1028,13 @@ const InserimentoPresenzeApp = (() => {
   const target = event.target;
   if (!target) return;
 
-  const rowIndex = Number(target.dataset.rowIndex);
-  const field = target.dataset.field;
-  const action = target.dataset.action;
+  const actionButton = target.closest("button[data-action]");
+  const sourceElement = actionButton || target;
 
-  // ✅ DUPLICA RIGA
+  const rowIndex = Number(sourceElement.dataset.rowIndex);
+  const field = sourceElement.dataset.field;
+  const action = sourceElement.dataset.action;
+
   if (action === "duplicate") {
     if (Number.isNaN(rowIndex) || !state.rows[rowIndex]) return;
 
@@ -1040,7 +1042,8 @@ const InserimentoPresenzeApp = (() => {
 
     const newRow = {
       ...rowToClone,
-      sort_order: state.rows.length + 1
+      sort_order: state.rows.length + 1,
+      dirty: true
     };
 
     state.rows.splice(rowIndex + 1, 0, newRow);
@@ -1054,7 +1057,6 @@ const InserimentoPresenzeApp = (() => {
     return;
   }
 
-  // ✅ VALIDAZIONE STANDARD
   if (Number.isNaN(rowIndex) || !field || !state.rows[rowIndex]) return;
 
   const row = state.rows[rowIndex];
