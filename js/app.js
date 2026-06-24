@@ -1384,77 +1384,89 @@ const InserimentoPresenzeApp = (() => {
           .join(" • ");
 
         return `
-          <tr>
-            <td class="cell-operator">
-              <div class="operator-name">${escapeHtml(operatorLabel)}</div>
-              <div class="operator-meta">${escapeHtml(operatorMeta || "-")}</div>
-            </td>
-            <td>${escapeHtml(String(Number(row.ore_standard) || 0))}</td>
-            <td>
-              <input
-                class="table-input"
-                type="number"
-                min="0"
-                step="0.25"
-                inputmode="decimal"
-                value="${escapeAttribute(workHours)}"
-                data-row-index="${index}"
-                data-field="workHours"
-              >
-            </td>
-            <td>
-              <input
-                class="table-input"
-                type="number"
-                min="0"
-                step="1"
-                inputmode="numeric"
-                value="${escapeAttribute(String(row.evento_min))}"
-                data-row-index="${index}"
-                data-field="evento_min"
-              >
-            </td>
-            <td>
-              <input
-                class="table-input"
-                type="number"
-                min="0"
-                step="1"
-                inputmode="numeric"
-                value="${escapeAttribute(String(row.assemblea_min))}"
-                data-row-index="${index}"
-                data-field="assemblea_min"
-              >
-            </td>
-            <td>
-              <input
-                class="table-input"
-                type="number"
-                min="0"
-                step="1"
-                inputmode="numeric"
-                value="${escapeAttribute(String(row.sciopero_min))}"
-                data-row-index="${index}"
-                data-field="sciopero_min"
-              >
-            </td>
-            <td>
-              <select
-                class="table-select"
-                data-row-index="${index}"
-                data-field="postazione"
-              >
-                ${options}
-              </select>
-            </td>
-            <td class="final-cell">
-              <div class="final-box">
-                <span class="final-main">${escapeHtml(String(row.final_min))} min</span>
-                <span class="final-sub">${escapeHtml(finalHours)} h</span>
-              </div>
-            </td>
-          </tr>
-        `;
+  <tr>
+
+    <td data-label="Operatore" class="cell-operator">
+      <div class="operator-name">${escapeHtml(operatorLabel)}</div>
+      <div class="operator-meta">${escapeHtml(operatorMeta || "-")}</div>
+    </td>
+
+    <td data-label="Ore std">
+      ${escapeHtml(String(Number(row.ore_standard) || 0))}
+    </td>
+
+    <td data-label="Ore lavorate (h)">
+      <input
+        class="table-input"
+        type="number"
+        min="0"
+        step="0.25"
+        inputmode="decimal"
+        value="${escapeAttribute(workHours)}"
+        data-row-index="${index}"
+        data-field="workHours"
+      >
+    </td>
+
+    <td data-label="Evento min">
+      <input
+        class="table-input"
+        type="number"
+        min="0"
+        step="1"
+        inputmode="numeric"
+        value="${escapeAttribute(String(row.evento_min))}"
+        data-row-index="${index}"
+        data-field="evento_min"
+      >
+    </td>
+
+    <td data-label="Assemblea min">
+      <input
+        class="table-input"
+        type="number"
+        min="0"
+        step="1"
+        inputmode="numeric"
+        value="${escapeAttribute(String(row.assemblea_min))}"
+        data-row-index="${index}"
+        data-field="assemblea_min"
+      >
+    </td>
+
+    <td data-label="Sciopero min">
+      <input
+        class="table-input"
+        type="number"
+        min="0"
+        step="1"
+        inputmode="numeric"
+        value="${escapeAttribute(String(row.sciopero_min))}"
+        data-row-index="${index}"
+        data-field="sciopero_min"
+      >
+    </td>
+
+    <td data-label="Postazione">
+      <select
+        class="table-select"
+        data-row-index="${index}"
+        data-field="postazione"
+      >
+        ${options}
+      </select>
+    </td>
+
+    <td data-label="Finali" class="final-cell">
+      <div class="final-box">
+        <span class="final-main">${escapeHtml(String(row.final_min))} min</span>
+        <span class="final-sub">${escapeHtml(finalHours)} h</span>
+      </div>
+    </td>
+
+  </tr>
+`;
+          
       })
       .join("");
   }
