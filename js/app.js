@@ -1077,46 +1077,38 @@ if (dom.refreshOperatorsBtn) {
     });
   }
 
- function handleRowTableInteraction(event) {
+function handleRowTableInteraction(event) {
   const target = event.target;
   if (!target) return;
 
-  const actionButton = target.closest("button[data-action]");
+  const actionButton = target.closest('button[data-action]');
   const sourceElement = actionButton || target;
-
   const rowIndex = Number(sourceElement.dataset.rowIndex);
   const field = sourceElement.dataset.field;
   const action = sourceElement.dataset.action;
 
+  // Gestione duplicazione riga
   if (action === "duplicate") {
     if (Number.isNaN(rowIndex) || !state.rows[rowIndex]) return;
 
     const rowToClone = state.rows[rowIndex];
-
-    
-
-
     const newRow = {
-  ...rowToClone,
-  ore_standard: 0,
-  work_min: 0,           // ✅ <-- QUESTO FA LE ORE LAVORATE A 0
-  evento_min: 0,
-  assemblea_min: 0,
-  sciopero_min: 0,
-  final_min: 0,
-  sort_order: state.rows.length + 1,
-  dirty: true
-};
-
+      ...rowToClone,
+      ore_standard: 0,
+      work_min: 0,
+      evento_min: 0,
+      assemblea_min: 0,
+      sciopero_min: 0,
+      final_min: 0,
+      sort_order: state.rows.length + 1,
+      dirty: true
+    };
 
     state.rows.splice(rowIndex + 1, 0, newRow);
-
     reorderRows();
     saveState();
     renderRowsView();
-
     showBox(dom.globalMessage, "Riga duplicata correttamente.", "success");
-
     return;
   }
 
@@ -1124,10 +1116,27 @@ if (dom.refreshOperatorsBtn) {
 
   const row = state.rows[rowIndex];
 
+  // Gestione select postazione:
+  // aggiorna stato e salva, ma NON rifare renderRowsView()
+  // altrimenti il select si richiude subito
   if (field === "postazione") {
     row.postazione = target.value;
+
+    row.final_min = calculateFinalMinutes(
+      Number(row.work_min) || 0,
+      Number(state.setup.snackMin) || 0,
+      Number(state.setup.stopsMin) || 0,
+      Number(row.evento_min) || 0,
+      Number(row.assemblea_min) || 0,
+      Number(row.sciopero_min) || 0
+    );
+
+    row.dirty = true;
+    saveState();
+    return;
   }
 
+  // Gestione campi numerici
   if (field === "workHours") {
     row.work_min = hoursStringToMinutes(target.value);
   }
@@ -1154,11 +1163,16 @@ if (dom.refreshOperatorsBtn) {
   );
 
   row.dirty = true;
-
   saveState();
-  renderRowsView();
+
+  // Re-render solo per input numerici e azioni che lo richiedono
+  if (event.type === "change" || event.type === "input") {
+    renderRowsView();
+  }
 }
 
+
+  
   function handleSaveRows() {
     hideBox(dom.rowsErrors);
     hideBox(dom.globalMessage);
