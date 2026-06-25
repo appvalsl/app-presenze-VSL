@@ -1070,6 +1070,8 @@ function handleResetRows() {
   }
 
 
+
+
 function handleRowTableInteraction(event) {
   const target = event.target;
   if (!target) return;
@@ -1081,6 +1083,7 @@ function handleRowTableInteraction(event) {
   const field = sourceElement.dataset.field;
   const action = sourceElement.dataset.action;
 
+  // Duplica riga
   if (action === "duplicate") {
     if (Number.isNaN(rowIndex) || !state.rows[rowIndex]) return;
 
@@ -1093,6 +1096,7 @@ function handleRowTableInteraction(event) {
       assemblea_min: 0,
       sciopero_min: 0,
       final_min: 0,
+      extrasOpen: false,
       sort_order: state.rows.length + 1,
       dirty: true
     };
@@ -1107,10 +1111,21 @@ function handleRowTableInteraction(event) {
     return;
   }
 
+  // Toggle apertura/chiusura Eventi / anomalie
+  if (action === "toggle-extras") {
+    if (Number.isNaN(rowIndex) || !state.rows[rowIndex]) return;
+
+    state.rows[rowIndex].extrasOpen = !state.rows[rowIndex].extrasOpen;
+    saveState();
+    renderRowsView();
+    return;
+  }
+
   if (Number.isNaN(rowIndex) || !field || !state.rows[rowIndex]) return;
 
   const row = state.rows[rowIndex];
 
+  // Postazione: aggiorna senza rifare render immediato
   if (field === "postazione") {
     row.postazione = target.value;
 
@@ -1128,10 +1143,12 @@ function handleRowTableInteraction(event) {
     return;
   }
 
+  // Ore lavorate
   if (field === "workHours") {
     row.work_min = hoursStringToMinutes(target.value);
   }
 
+  // Campi extra
   if (field === "evento_min") {
     row.evento_min = toNonNegativeInt(target.value);
   }
@@ -1156,11 +1173,14 @@ function handleRowTableInteraction(event) {
   row.dirty = true;
   saveState();
 
+  // Re-render solo quando esci dal campo
   if (event.type === "change") {
     renderRowsView();
   }
 }
 
+
+  
   
   function handleSaveRows() {
     hideBox(dom.rowsErrors);
