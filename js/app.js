@@ -3023,7 +3023,7 @@ function handleRowTableInteraction(event) {
               ${
                 row.worksOpen
                   ? renderWorksPanel(row, index, state.setup.lineName)
-                  : `<div class="works-preview">${escapeHtml(formatWorksPreview(row.lavorazioni))}</div>`
+                  : ""
               }
             </td>
 
