@@ -4875,3 +4875,255 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   document.addEventListener("DOMContentLoaded", init);
 })();
+
+/* ===== GESTIONE APPLICAZIONE PERSISTENTE CON SELETTORE TABELLA ===== */
+(function () {
+  "use strict";
+  const client = window.AppSupabase && window.AppSupabase.getClient ? window.AppSupabase.getClient() : null;
+  const $ = (id) => document.getElementById(id);
+  const esc = (v) => String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+  const norm = (v) => String(v || "").trim().toUpperCase();
+  let appState = { sessions: [], rows: [], selectedSessionId: null, users: [] };
+
+  function isVisible(el) { return el && !el.classList.contains("hidden"); }
+  function showMessage(el, msg, type) { if (!el) return; el.textContent = msg; el.className = "message " + (type || "info"); el.classList.remove("hidden"); }
+  function hideMessage(el) { if (!el) return; el.textContent = ""; el.className = "message hidden"; }
+  function minToHours(min) { return ((Number(min) || 0) / 60).toFixed(2); }
+  function formatWorks(value) {
+    let arr = [];
+    if (Array.isArray(value)) arr = value;
+    else if (value) { try { const parsed = JSON.parse(value); if (Array.isArray(parsed)) arr = parsed; } catch (_) {} }
+    return arr.map((item) => typeof item === "object" ? item.nome : item).filter(Boolean).join(", ") || "-";
+  }
+
+  async function getProfile() {
+    if (!client) return null;
+    const session = await client.auth.getSession();
+    const user = session && session.data && session.data.session ? session.data.session.user : null;
+    if (!user) return null;
+    const res = await client.from("app_users").select("role,can_manage_operators,is_active").eq("user_id", user.id).maybeSingle();
+    const profile = res.data || {};
+    const isAdmin = profile.is_active !== false && (profile.can_manage_operators === true || norm(profile.role) === "ADMIN" || norm(profile.role) === "SUPERADMIN");
+    return { user, profile, isAdmin };
+  }
+
+  function ensurePersistentPanel() {
+    const view = $("operatorsAdminView");
+    if (!view) return;
+    const old = $("appTablesPanel");
+    if (old) old.remove();
+
+    const msg = $("operatorsAdminMessage");
+    const panel = document.createElement("div");
+    panel.id = "appTablesPanel";
+    panel.className = "card inline-card app-tables-panel";
+    panel.innerHTML = `
+      <div class="card-header compact-header">
+        <h3>Tabelle applicazione</h3>
+        <p>Seleziona la tabella o l'area da gestire. Il selettore rimane sempre visibile in alto.</p>
+      </div>
+      <div class="form-grid form-grid-3 app-table-selector-grid">
+        <div class="field">
+          <label for="applicationAreaSelect">Area / tabella</label>
+          <select id="applicationAreaSelect">
+            <option value="operators">Operatori</option>
+            <option value="app_users">Utenti e permessi</option>
+            <option value="attendance">Riepilogo presenze</option>
+            <option value="work_config">Lavorazioni configurate</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="applicationAreaRefreshBtn" class="btn btn-secondary" type="button">Aggiorna area selezionata</button>
+        </div>
+      </div>
+      <div id="applicationAreaMessage" class="message hidden" role="alert" aria-live="polite"></div>
+      <div id="applicationUsersPanel" class="application-area hidden"></div>
+      <div id="applicationAttendancePanel" class="application-area hidden"></div>
+      <div id="applicationWorkConfigPanel" class="application-area hidden"></div>
+      <div id="applicationOperatorsHint" class="application-area hidden">
+        <div class="message info">Gestione operatori attiva: usa la tabella operatori sotto questo pannello.</div>
+      </div>
+    `;
+    if (msg) msg.insertAdjacentElement("afterend", panel);
+    else view.querySelector(".card")?.prepend(panel);
+
+    const select = $("applicationAreaSelect");
+    const refresh = $("applicationAreaRefreshBtn");
+    if (select) select.onchange = () => selectArea(select.value);
+    if (refresh) refresh.onclick = () => selectArea(select ? select.value : "operators", true);
+    selectArea("operators");
+  }
+
+  function hideAllAreas() {
+    ["applicationUsersPanel", "applicationAttendancePanel", "applicationWorkConfigPanel", "applicationOperatorsHint"].forEach((id) => {
+      const el = $(id);
+      if (el) el.classList.add("hidden");
+    });
+  }
+
+  async function selectArea(area, forceRefresh) {
+    hideAllAreas();
+    hideMessage($("applicationAreaMessage"));
+    if (area === "operators") {
+      $("applicationOperatorsHint")?.classList.remove("hidden");
+      return;
+    }
+    if (area === "app_users") {
+      $("applicationUsersPanel")?.classList.remove("hidden");
+      if (forceRefresh || !appState.users.length) await loadUsersArea();
+      else renderUsersArea();
+      return;
+    }
+    if (area === "attendance") {
+      $("applicationAttendancePanel")?.classList.remove("hidden");
+      renderAttendanceAreaShell();
+      await loadAttendanceSessionsArea();
+      return;
+    }
+    if (area === "work_config") {
+      $("applicationWorkConfigPanel")?.classList.remove("hidden");
+      renderWorkConfigArea();
+    }
+  }
+
+  async function loadUsersArea() {
+    const box = $("applicationUsersPanel");
+    if (!box || !client) return;
+    const res = await client.from("app_users").select("user_id,email,role,can_manage_operators,is_active").order("email", { ascending: true });
+    if (res.error) { showMessage($("applicationAreaMessage"), res.error.message, "error"); return; }
+    appState.users = res.data || [];
+    renderUsersArea();
+  }
+
+  function renderUsersArea() {
+    const box = $("applicationUsersPanel");
+    if (!box) return;
+    const rows = appState.users || [];
+    box.innerHTML = `
+      <h3 class="admin-subtitle">Utenti e permessi</h3>
+      <div class="table-wrap">
+        <table class="attendance-table">
+          <thead><tr><th>Email</th><th>Ruolo</th><th>Admin</th><th>Attivo</th><th>Azioni</th></tr></thead>
+          <tbody>
+            ${rows.length ? rows.map((u) => `
+              <tr>
+                <td>${esc(u.email || "-")}</td>
+                <td>${esc(u.role || "user")}</td>
+                <td>${u.can_manage_operators ? "Sì" : "No"}</td>
+                <td>${u.is_active ? "Sì" : "No"}</td>
+                <td><button class="btn btn-secondary btn-small" data-app-user-admin="${esc(u.user_id)}">${u.can_manage_operators ? "Rendi user" : "Rendi admin"}</button></td>
+              </tr>
+            `).join("") : `<tr><td colspan="5"><div class="muted">Nessun utente presente in app_users.</div></td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    `;
+    box.querySelectorAll("button[data-app-user-admin]").forEach((button) => {
+      button.onclick = async () => {
+        const user = appState.users.find((item) => String(item.user_id) === String(button.dataset.appUserAdmin));
+        if (!user) return;
+        const nextAdmin = !user.can_manage_operators;
+        const res = await client.from("app_users").update({ role: nextAdmin ? "admin" : "user", can_manage_operators: nextAdmin, is_active: true }).eq("user_id", user.user_id).select();
+        if (res.error) showMessage($("applicationAreaMessage"), res.error.message, "error");
+        else await loadUsersArea();
+      };
+    });
+  }
+
+  function renderAttendanceAreaShell() {
+    const box = $("applicationAttendancePanel");
+    if (!box || box.dataset.ready === "1") return;
+    box.dataset.ready = "1";
+    box.innerHTML = `
+      <h3 class="admin-subtitle">Riepilogo presenze</h3>
+      <div class="card inline-card">
+        <div class="form-grid form-grid-3">
+          <div class="field"><label for="appAttendanceDateFilter">Data</label><input id="appAttendanceDateFilter" type="date"></div>
+          <div class="field"><label for="appAttendanceLineFilter">Linea</label><select id="appAttendanceLineFilter"><option value="">Tutte le linee</option></select></div>
+          <div class="field"><label for="appAttendanceSearchInput">Cerca dettaglio</label><input id="appAttendanceSearchInput" type="text" placeholder="Operatore, postazione, lavorazione"></div>
+        </div>
+      </div>
+      <h4 class="admin-subtitle">Giornate salvate</h4>
+      <div class="table-wrap"><table class="attendance-table"><thead><tr><th>Data</th><th>Linea</th><th>Inizio</th><th>Fine</th><th>Azioni</th></tr></thead><tbody id="appAttendanceSessionsBody"></tbody></table></div>
+      <h4 class="admin-subtitle">Dettaglio presenze</h4>
+      <div class="table-wrap"><table class="attendance-table"><thead><tr><th>Operatore</th><th>Linea</th><th>Postazione</th><th>Lavorazioni</th><th>Ore</th><th>Finali</th><th>Extra</th><th>Azioni</th></tr></thead><tbody id="appAttendanceRowsBody"></tbody></table></div>
+    `;
+    $("appAttendanceDateFilter").onchange = loadAttendanceSessionsArea;
+    $("appAttendanceLineFilter").onchange = loadAttendanceSessionsArea;
+    $("appAttendanceSearchInput").oninput = renderAttendanceRowsArea;
+  }
+
+  async function loadAttendanceSessionsArea() {
+    if (!client) return;
+    const d = $("appAttendanceDateFilter")?.value || "";
+    const l = $("appAttendanceLineFilter")?.value || "";
+    let q = client.from("attendance_sessions").select("*").order("work_date", { ascending: false }).order("line_name", { ascending: true });
+    if (d) q = q.eq("work_date", d);
+    if (l) q = q.eq("line_name", l);
+    const res = await q;
+    if (res.error) { showMessage($("applicationAreaMessage"), res.error.message, "error"); return; }
+    appState.sessions = res.data || [];
+    renderAttendanceLineFilterArea();
+    renderAttendanceSessionsArea();
+  }
+
+  function renderAttendanceLineFilterArea() {
+    const sel = $("appAttendanceLineFilter");
+    if (!sel) return;
+    const current = sel.value;
+    const lines = [...new Set(appState.sessions.map((s) => s.line_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"it"));
+    sel.innerHTML = `<option value="">Tutte le linee</option>` + lines.map((line) => `<option value="${esc(line)}">${esc(line)}</option>`).join("");
+    sel.value = current;
+  }
+
+  function renderAttendanceSessionsArea() {
+    const body = $("appAttendanceSessionsBody");
+    if (!body) return;
+    if (!appState.sessions.length) {
+      body.innerHTML = `<tr><td colspan="5"><div class="muted">Nessuna giornata salvata trovata.</div></td></tr>`;
+      return;
+    }
+    body.innerHTML = appState.sessions.map((s) => `
+      <tr><td>${esc(s.work_date || "-")}</td><td>${esc(s.line_name || "-")}</td><td>${esc(s.start_time || "-")}</td><td>${esc(s.end_time || "-")}</td><td><button class="btn btn-secondary btn-small" data-open-app-session="${esc(s.id)}">Apri</button></td></tr>
+    `).join("");
+    body.querySelectorAll("button[data-open-app-session]").forEach((button) => button.onclick = () => loadAttendanceRowsArea(button.dataset.openAppSession));
+  }
+
+  async function loadAttendanceRowsArea(sessionId) {
+    appState.selectedSessionId = sessionId;
+    const res = await client.from("attendance_rows").select("*").eq("attendance_session_id", sessionId).order("sort_order", { ascending: true });
+    if (res.error) { showMessage($("applicationAreaMessage"), res.error.message, "error"); return; }
+    appState.rows = res.data || [];
+    renderAttendanceRowsArea();
+  }
+
+  function renderAttendanceRowsArea() {
+    const body = $("appAttendanceRowsBody");
+    if (!body) return;
+    const search = norm($("appAttendanceSearchInput")?.value || "");
+    const rows = (appState.rows || []).filter((r) => !search || norm([r.cognome, r.nome, r.line_day, r.postazione, JSON.stringify(r.lavorazioni || [])].join(" ")).includes(search));
+    if (!appState.selectedSessionId) { body.innerHTML = `<tr><td colspan="8"><div class="muted">Apri una giornata per vedere il dettaglio.</div></td></tr>`; return; }
+    if (!rows.length) { body.innerHTML = `<tr><td colspan="8"><div class="muted">Nessuna riga trovata.</div></td></tr>`; return; }
+    body.innerHTML = rows.map((r) => {
+      const name = [r.cognome, r.nome].filter(Boolean).join(" ") || "Operatore";
+      return `<tr><td>${esc(name)}</td><td>${esc(r.line_day || "-")}</td><td>${esc(r.postazione || "-")}</td><td>${esc(formatWorks(r.lavorazioni))}</td><td>${esc(minToHours(r.work_min))}</td><td>${esc(Number(r.final_min)||0)} min</td><td>${esc((r.evento_min||0)+"/"+(r.assemblea_min||0)+"/"+(r.sciopero_min||0))}</td><td><button class="btn btn-secondary btn-small" data-edit-app-row="${esc(r.id)}">Modifica ore</button></td></tr>`;
+    }).join("");
+  }
+
+  function renderWorkConfigArea() {
+    const box = $("applicationWorkConfigPanel");
+    if (!box) return;
+    box.innerHTML = `
+      <h3 class="admin-subtitle">Lavorazioni configurate</h3>
+      <div class="message info">Le lavorazioni sono attualmente configurate nel file <strong>app.js</strong>. Per una gestione completa da frontend serve creare una tabella Supabase dedicata, ad esempio <strong>work_config</strong>. Questa area rimane fissa nel pannello e non fa sparire il selettore.</div>
+    `;
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(async () => {
+      const profile = await getProfile();
+      if (profile && profile.isAdmin) ensurePersistentPanel();
+    }, 900);
+  });
+})();
