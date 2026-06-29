@@ -4,3 +4,9 @@
 .work-check-text{display:grid;gap:2px}.work-check-text strong{font-size:13px;color:#243b53}.work-check-text em{font-style:normal;color:#64748b;font-size:12px}.works-panel{max-height:320px;overflow:auto}
 
 .application-admin-panel{border:1px solid #bfd7f3}.application-table td{font-size:12px;max-width:260px;word-break:break-word}.work-check-text em{display:none!important}
+
+/* V3 - lavorazioni esplose completamente, nessuna anteprima e nessuno scroll interno */
+.works-preview{display:none!important;}
+.works-panel{max-height:none!important;overflow:visible!important;}
+.attendance-table td[data-label="Lavorazioni"]{min-width:360px;}
+.work-check{align-items:flex-start;}
