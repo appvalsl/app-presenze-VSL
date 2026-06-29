@@ -2971,7 +2971,7 @@ function handleRowTableInteraction(event) {
           <tr>
             <td data-label="Operatore" class="cell-operator">
               <div class="operator-name">${escapeHtml(operatorLabel)}</div>
-              <div class="operator-meta">-</div>
+              
             </td>
 
 
