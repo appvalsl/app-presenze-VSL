@@ -1348,6 +1348,9 @@ const InserimentoPresenzeApp = (() => {
       activeTable: "operators",
       rows: [],
       columns: []
+    },
+    usersAdmin: {
+      rows: []
     }
   };
 
@@ -1450,6 +1453,10 @@ dom.attendanceTableBody = document.getElementById("attendanceTableBody");
     dom.applicationAdminTableWrap = document.getElementById("applicationAdminTableWrap");
     dom.applicationAdminTableHead = document.getElementById("applicationAdminTableHead");
     dom.applicationAdminTableBody = document.getElementById("applicationAdminTableBody");
+    dom.refreshUsersAdminBtn = document.getElementById("refreshUsersAdminBtn");
+    dom.usersAdminMessage = document.getElementById("usersAdminMessage");
+    dom.usersAdminTableBody = document.getElementById("usersAdminTableBody");
+    dom.openAttendanceFromApplicationBtn = document.getElementById("openAttendanceFromApplicationBtn");
     dom.operatorsSearchInput = document.getElementById("operatorsSearchInput");
     dom.operatorsLineFilter = document.getElementById("operatorsLineFilter");
     dom.operatorsStatusFilter = document.getElementById("operatorsStatusFilter");
@@ -1799,11 +1806,34 @@ function handleResetRows() {
         state.applicationAdmin.rows = [];
         state.applicationAdmin.columns = [];
         renderApplicationAdminTable();
+    renderUsersAdmin();
         hideBox(dom.applicationAdminMessage);
       });
     }
     if (dom.applicationAdminTableBody) {
       dom.applicationAdminTableBody.addEventListener("click", handleApplicationAdminClick);
+    }
+
+    if (dom.refreshUsersAdminBtn) {
+      dom.refreshUsersAdminBtn.addEventListener("click", async () => {
+        await loadUsersAdmin();
+      });
+    }
+    if (dom.usersAdminTableBody) {
+      dom.usersAdminTableBody.addEventListener("click", handleUsersAdminClick);
+    }
+    if (dom.openAttendanceFromApplicationBtn) {
+      dom.openAttendanceFromApplicationBtn.addEventListener("click", async () => {
+        if (!canManageAttendance()) {
+          showBox(dom.globalMessage, "Non sei autorizzato a gestire le presenze salvate.", "error");
+          return;
+        }
+        state.activeMainView = "attendanceAdmin";
+        renderPermissions();
+        renderAttendanceAdmin();
+        await loadAttendanceAdminSessions();
+        renderAll();
+      });
     }
 
     const setupInputs = [
@@ -3728,6 +3758,95 @@ function handleRowTableInteraction(event) {
   }
 
 
+
+  async function loadUsersAdmin() {
+    if (!client || !canManageOperators()) return;
+    hideBox(dom.usersAdminMessage);
+    setButtonLoading(dom.refreshUsersAdminBtn, true, "Caricamento...");
+    try {
+      const response = await client
+        .from("app_users")
+        .select("user_id,email,role,can_manage_operators,is_active,created_at,updated_at")
+        .order("email", { ascending: true });
+      if (response.error) throw response.error;
+      state.usersAdmin.rows = Array.isArray(response.data) ? response.data : [];
+      renderUsersAdmin();
+      showBox(dom.usersAdminMessage, "Utenti caricati correttamente.", "success");
+    } catch (error) {
+      console.error("Errore caricamento utenti:", error);
+      showBox(dom.usersAdminMessage, error.message || "Errore caricamento utenti.", "error");
+    } finally {
+      setButtonLoading(dom.refreshUsersAdminBtn, false, "Aggiorna utenti");
+    }
+  }
+  function renderUsersAdmin() {
+    if (!dom.usersAdminTableBody || !canManageOperators()) return;
+    const rows = state.usersAdmin && Array.isArray(state.usersAdmin.rows) ? state.usersAdmin.rows : [];
+    if (!rows.length) {
+      dom.usersAdminTableBody.innerHTML = `<tr><td colspan="5"><div class="muted">Premi “Aggiorna utenti” per caricare gli utenti applicazione.</div></td></tr>`;
+      return;
+    }
+    dom.usersAdminTableBody.innerHTML = rows.map((user) => {
+      const isAdmin = normalizeText(user.role) === "ADMIN" || user.can_manage_operators === true;
+      const isActive = user.is_active === true;
+      return `
+        <tr>
+          <td>${escapeHtml(user.email || "-")}</td>
+          <td>${escapeHtml(user.role || "user")}</td>
+          <td>${isAdmin ? `<span class="badge-active">Admin</span>` : `<span class="badge-inactive">User</span>`}</td>
+          <td>${isActive ? `<span class="badge-active">Attivo</span>` : `<span class="badge-inactive">Non attivo</span>`}</td>
+          <td>
+            <div class="table-actions">
+              <button class="btn btn-secondary btn-small" type="button" data-action="toggle-user-admin" data-id="${escapeAttribute(String(user.user_id))}">${isAdmin ? "Rendi user" : "Rendi admin"}</button>
+              <button class="btn btn-secondary btn-small" type="button" data-action="toggle-user-active" data-id="${escapeAttribute(String(user.user_id))}">${isActive ? "Disattiva" : "Riattiva"}</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+  async function handleUsersAdminClick(event) {
+    const button = event.target.closest("button[data-action]");
+    if (!button || !canManageOperators()) return;
+    const userId = button.dataset.id;
+    const action = button.dataset.action;
+    const user = (state.usersAdmin.rows || []).find((item) => String(item.user_id) === String(userId));
+    if (!user) return;
+    let payload = {};
+    if (action === "toggle-user-admin") {
+      const isAdmin = normalizeText(user.role) === "ADMIN" || user.can_manage_operators === true;
+      payload = {
+        role: isAdmin ? "user" : "admin",
+        can_manage_operators: !isAdmin,
+        is_active: user.is_active === false ? false : true
+      };
+    } else if (action === "toggle-user-active") {
+      payload = { is_active: !(user.is_active === true) };
+    } else {
+      return;
+    }
+    setButtonLoading(button, true, "Salvo...");
+    try {
+      const response = await client
+        .from("app_users")
+        .update(payload)
+        .eq("user_id", userId)
+        .select();
+      if (response.error) throw response.error;
+      await loadUsersAdmin();
+      if (state.user && String(state.user.id) === String(userId)) {
+        await loadCurrentUserProfile();
+        renderPermissions();
+      }
+      showBox(dom.usersAdminMessage, "Permessi aggiornati correttamente.", "success");
+    } catch (error) {
+      console.error("Errore aggiornamento utente:", error);
+      showBox(dom.usersAdminMessage, error.message || "Errore aggiornamento utente.", "error");
+    } finally {
+      setButtonLoading(button, false, action === "toggle-user-admin" ? "Aggiorna ruolo" : "Aggiorna stato");
+    }
+  }
+
   const APPLICATION_TABLES = {
     operators: { label: "Operatori", key: "id", order: "cognome" },
     app_users: { label: "Utenti / permessi", key: "user_id", order: "email" },
@@ -3752,6 +3871,7 @@ function handleRowTableInteraction(event) {
       state.applicationAdmin.rows = Array.isArray(response.data) ? response.data : [];
       state.applicationAdmin.columns = buildColumnsFromRows(state.applicationAdmin.rows);
       renderApplicationAdminTable();
+    renderUsersAdmin();
       showBox(dom.applicationAdminMessage, "Tabella caricata: " + config.label + ".", "success");
     } catch (error) {
       console.error("Errore caricamento tabella applicazione:", error);
