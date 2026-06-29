@@ -86,1226 +86,7 @@ const InserimentoPresenzeApp = (() => {
     ]
 };
 
-  const WORKS_BY_LINE_STATION = {
-    "CALZOLERIA 1": {
-        "Carico manovia": [
-            {
-                "nome": "Prelevare la forma dai formai/modula",
-                "carrello": "1"
-            },
-            {
-                "nome": "Caricare la forma in manovia",
-                "carrello": "1"
-            },
-            {
-                "nome": "Caricare la tomaia in manovia",
-                "carrello": "1"
-            },
-            {
-                "nome": "Caricare il soletto di montaggio in manovia",
-                "carrello": "1"
-            },
-            {
-                "nome": "Collocare la forma nei formai/modula",
-                "carrello": "1"
-            },
-            {
-                "nome": "Cardare la tomaia",
-                "carrello": "1"
-            },
-            {
-                "nome": "Cardare il soletto di montaggio",
-                "carrello": "1"
-            },
-            {
-                "nome": "(LS) Applicare la protezione sul soletto di montaggio",
-                "carrello": "1"
-            },
-            {
-                "nome": "(LS) Applicare la protezione sulla tomaia",
-                "carrello": "1"
-            },
-            {
-                "nome": "(LS) Affondare gli scassi del soletto di montaggio",
-                "carrello": "1"
-            },
-            {
-                "nome": "Applicare il soletto di montaggio sulla forma con i chiodi",
-                "carrello": "1"
-            },
-            {
-                "nome": "(LS) Applicare il soletto di montaggio sulla forma con l'adesivo",
-                "carrello": "1"
-            },
-            {
-                "nome": "Applicare il collante sul soletto di montaggio (1)",
-                "carrello": "1"
-            },
-            {
-                "nome": "Applicare il collante sulla tomaia da montare",
-                "carrello": "1"
-            },
-            {
-                "nome": "Insacchettare la tomaia nella forma",
-                "carrello": "1"
-            },
-            {
-                "nome": "Inserire la tomaia nelle asole del soletto di montaggio (2)",
-                "carrello": "1"
-            }
-        ],
-        "Carico e grattatura strutture": [
-            {
-                "nome": "Caricare il tacco in manovia",
-                "carrello": "23"
-            },
-            {
-                "nome": "Caricare la suola in manovia",
-                "carrello": "23"
-            },
-            {
-                "nome": "Caricare il monoblocco in manovia",
-                "carrello": "23"
-            },
-            {
-                "nome": "Caricare il plateau in manovia",
-                "carrello": "23"
-            },
-            {
-                "nome": "Caricare la taccola in manovia",
-                "carrello": "23"
-            },
-            {
-                "nome": "(LS) Cardare il tacco",
-                "carrello": "23"
-            },
-            {
-                "nome": "(LS) Cardare la suola",
-                "carrello": "23"
-            },
-            {
-                "nome": "(LS) Cardare il monoblocco",
-                "carrello": "23"
-            },
-            {
-                "nome": "(LS) Cardare il plateau",
-                "carrello": "23"
-            },
-            {
-                "nome": "Sgrassare il monoblocco",
-                "carrello": "23"
-            },
-            {
-                "nome": "(LS) Applicare il puntalino in metallo",
-                "carrello": "23"
-            },
-            {
-                "nome": "(LS) Applicare l'aggrappante sulla suola",
-                "carrello": "23"
-            },
-            {
-                "nome": "Applicare il tag rfid",
-                "carrello": "23"
-            },
-            {
-                "nome": "(LS) Applicare l'aggrappante sulla tomaia montata",
-                "carrello": "23"
-            }
-        ],
-        "Pulizia": [
-            {
-                "nome": "Scaricare la scarpa dalla manovia",
-                "carrello": "66"
-            },
-            {
-                "nome": "Scaricare la forma dalla manovia",
-                "carrello": "66"
-            },
-            {
-                "nome": "(LS) Rimuovere la protezione dal soletto di montaggio",
-                "carrello": "66"
-            },
-            {
-                "nome": "Rimuovere il collante dalla scarpa",
-                "carrello": "66"
-            },
-            {
-                "nome": "Rimuovere il segno a dima dalla scarpa",
-                "carrello": "66"
-            },
-            {
-                "nome": "Caricare il frigo",
-                "carrello": "66"
-            },
-            {
-                "nome": "Scaricare il frigo",
-                "carrello": "66"
-            },
-            {
-                "nome": "Rimuovere la scarpa dalla forma",
-                "carrello": "66"
-            }
-        ],
-        "Premonta": [
-            {
-                "nome": "(LS) Rinforzare la tomaia con l'adesivo",
-                "carrello": "15"
-            },
-            {
-                "nome": "(LS) Applicare l'ammorbidente sulla tomaia",
-                "carrello": "15"
-            },
-            {
-                "nome": "(LS) Fermare la tomaia con chiodi/spille/grappette per premonta",
-                "carrello": "15"
-            },
-            {
-                "nome": "Chiudere la punta della tomaia con premonta",
-                "carrello": "15"
-            },
-            {
-                "nome": "Applicare il collante sui fianchi della tomaia premontata",
-                "carrello": "15"
-            },
-            {
-                "nome": "(LS) Utilizzare la garbatrice",
-                "carrello": "15"
-            },
-            {
-                "nome": "(LS) Applicare il collante sulla punta della tomaia",
-                "carrello": "15"
-            }
-        ],
-        "Montaggio manuale": [
-            {
-                "nome": "(LS) Chiudere la scarpa manualmente",
-                "carrello": "20"
-            },
-            {
-                "nome": "Chiudere i lacci/fasce anteriori della tomaia (corta)",
-                "carrello": "20"
-            },
-            {
-                "nome": "Chiudere i lacci/fasce anteriori della tomaia (lunga)",
-                "carrello": "20"
-            },
-            {
-                "nome": "Chiudere i lacci/fasce posteriori della tomaia",
-                "carrello": "20"
-            },
-            {
-                "nome": "(LS) Fermare la tomaia con chiodi/spille/grappette per calzera",
-                "carrello": "20"
-            },
-            {
-                "nome": "Chiudere gli scolli della tomaia",
-                "carrello": "20"
-            },
-            {
-                "nome": "Chiudere gli scolli e i fianchi della tomaia",
-                "carrello": "20"
-            },
-            {
-                "nome": "(LS) Applicare il sostegno di pelle alla tomaia",
-                "carrello": "20"
-            },
-            {
-                "nome": "(LS) Fermare la fodera con chiodi/spille/grappette/corda",
-                "carrello": "20"
-            },
-            {
-                "nome": "(LS) Chiudere la fodera manualmente",
-                "carrello": "20"
-            },
-            {
-                "nome": "(LS) Applicare il collante sulla fodera",
-                "carrello": "20"
-            },
-            {
-                "nome": "(LS) Applicare il collante spray sulla tomaia",
-                "carrello": "20"
-            }
-        ],
-        "Ribattitura e rimozione chiodi": [
-            {
-                "nome": "Ribattere la tomaia con martello",
-                "carrello": "36"
-            },
-            {
-                "nome": "Stirare la tomaia esternamente (1)",
-                "carrello": "36"
-            },
-            {
-                "nome": "Rimuovere i chiodi dal soletto di montaggio (1)",
-                "carrello": "36"
-            },
-            {
-                "nome": "Applicare il rinforzo per infradito",
-                "carrello": "36"
-            },
-            {
-                "nome": "Applicare il collante sui punti rialzati della tomaia premontata",
-                "carrello": "36"
-            }
-        ],
-        "Calzera": [
-            {
-                "nome": "Chiudere il dietro della tomaia",
-                "carrello": "26"
-            },
-            {
-                "nome": "Caricare il forno",
-                "carrello": "26"
-            }
-        ],
-        "Suolatura": [
-            {
-                "nome": "(LS) Rimuovere l'adesivo di ritenuta dal soletto di montaggio",
-                "carrello": "73"
-            },
-            {
-                "nome": "Rimuovere il tassello dalla suola",
-                "carrello": "73"
-            },
-            {
-                "nome": "Applicare la colla americana sul tacco",
-                "carrello": "73"
-            },
-            {
-                "nome": "(LS) Applicare il collante sul tacco",
-                "carrello": "73"
-            },
-            {
-                "nome": "Utilizzare la prefissa (corta)",
-                "carrello": "73"
-            },
-            {
-                "nome": "Utilizzare la prefissa (lunga)",
-                "carrello": "73"
-            },
-            {
-                "nome": "Avvitare manualmente il tacco",
-                "carrello": "73"
-            },
-            {
-                "nome": "Utilizzare la pressa (corta)",
-                "carrello": "73"
-            },
-            {
-                "nome": "Utilizzare la pressa (lunga)",
-                "carrello": "73"
-            }
-        ],
-        "Sgrossatura e ribattitura": [
-            {
-                "nome": "(LS) Rimuovere la protezione dalla tomaia",
-                "carrello": "47"
-            },
-            {
-                "nome": "Scaricare il forno",
-                "carrello": "47"
-            },
-            {
-                "nome": "Sgrossare la tomaia",
-                "carrello": "47"
-            }
-        ],
-        "Segno a dima e boetta": [
-            {
-                "nome": "Utilizzare la ribattitrice",
-                "carrello": "49"
-            },
-            {
-                "nome": "Segnare a dima la tomaia",
-                "carrello": "50"
-            },
-            {
-                "nome": "Utilizzare la boettatrice",
-                "carrello": "49"
-            }
-        ],
-        "Cardatura fine": [
-            {
-                "nome": "Cardare finemente la tomaia con la ruzzola",
-                "carrello": "56"
-            },
-            {
-                "nome": "Cardare finemente la tomaia con il frullino",
-                "carrello": "56"
-            }
-        ],
-        "Incollaggio suola": [
-            {
-                "nome": "Applicare il collante sulla suola",
-                "carrello": "58"
-            },
-            {
-                "nome": "(LS) Applicare la gommapiuma sulla suola",
-                "carrello": "58"
-            }
-        ],
-        "Incollaggio tomaia": [
-            {
-                "nome": "(LS) Applicare i rinforzi sul soletto di montaggio",
-                "carrello": "60"
-            },
-            {
-                "nome": "Applicare il collante sulla tomaia montata",
-                "carrello": "60"
-            },
-            {
-                "nome": "Applicare la gommapiuma sul soletto di montaggio",
-                "carrello": "60"
-            }
-        ],
-        "Inchiodatura": [
-            {
-                "nome": "Utilizzare l'inchiodatacchi",
-                "carrello": "84"
-            },
-            {
-                "nome": "Rimuovere i chiodi dal soletto di montaggio (2)",
-                "carrello": "84"
-            }
-        ]
-    },
-    "CALZOLERIA 2": {
-        "Carico manovia": [
-            {
-                "nome": "Prelevare la forma dai formai/modula",
-                "carrello": "1"
-            },
-            {
-                "nome": "Caricare la forma in manovia",
-                "carrello": "1"
-            },
-            {
-                "nome": "Caricare la tomaia in manovia",
-                "carrello": "1"
-            },
-            {
-                "nome": "Caricare il soletto di montaggio in manovia",
-                "carrello": "1"
-            },
-            {
-                "nome": "Collocare la forma nei formai/modula",
-                "carrello": "1"
-            },
-            {
-                "nome": "Cardare la tomaia",
-                "carrello": "1"
-            },
-            {
-                "nome": "Cardare il soletto di montaggio",
-                "carrello": "1"
-            },
-            {
-                "nome": "(LS) Applicare la protezione sul soletto di montaggio",
-                "carrello": "1"
-            },
-            {
-                "nome": "(LS) Applicare la protezione sulla tomaia",
-                "carrello": "1"
-            },
-            {
-                "nome": "(LS) Affondare gli scassi del soletto di montaggio",
-                "carrello": "1"
-            },
-            {
-                "nome": "Applicare il soletto di montaggio sulla forma con i chiodi",
-                "carrello": "1"
-            },
-            {
-                "nome": "(LS) Applicare il soletto di montaggio sulla forma con l'adesivo",
-                "carrello": "1"
-            },
-            {
-                "nome": "Applicare il collante sul soletto di montaggio (1)",
-                "carrello": "1"
-            },
-            {
-                "nome": "Applicare il collante sulla tomaia da montare",
-                "carrello": "1"
-            },
-            {
-                "nome": "Insacchettare la tomaia nella forma",
-                "carrello": "1"
-            },
-            {
-                "nome": "Inserire la tomaia nelle asole del soletto di montaggio (2)",
-                "carrello": "1"
-            },
-            {
-                "nome": "Applicare il tag rfid",
-                "carrello": "1"
-            }
-        ],
-        "Carico e grattatura strutture": [
-            {
-                "nome": "Caricare il tacco in manovia",
-                "carrello": "38"
-            },
-            {
-                "nome": "Caricare la suola in manovia",
-                "carrello": "38"
-            },
-            {
-                "nome": "Caricare il monoblocco in manovia",
-                "carrello": "38"
-            },
-            {
-                "nome": "Caricare il plateau in manovia",
-                "carrello": "38"
-            },
-            {
-                "nome": "Caricare la taccola in manovia",
-                "carrello": "38"
-            },
-            {
-                "nome": "(LS) Cardare il tacco",
-                "carrello": "38"
-            },
-            {
-                "nome": "(LS) Cardare la suola",
-                "carrello": "38"
-            },
-            {
-                "nome": "(LS) Cardare il monoblocco",
-                "carrello": "38"
-            },
-            {
-                "nome": "(LS) Cardare il plateau",
-                "carrello": "38"
-            },
-            {
-                "nome": "Sgrassare il monoblocco",
-                "carrello": "38"
-            },
-            {
-                "nome": "(LS) Applicare il puntalino in metallo",
-                "carrello": "38"
-            },
-            {
-                "nome": "(LS) Applicare l'aggrappante sulla suola",
-                "carrello": "38"
-            },
-            {
-                "nome": "Rimuovere il tassello dalla suola",
-                "carrello": "38"
-            },
-            {
-                "nome": "(LS) Applicare l'aggrappante sulla tomaia montata",
-                "carrello": "38"
-            }
-        ],
-        "Pulizia": [
-            {
-                "nome": "Scaricare la scarpa dalla manovia",
-                "carrello": "74"
-            },
-            {
-                "nome": "Scaricare la forma dalla manovia",
-                "carrello": "74"
-            },
-            {
-                "nome": "(LS) Rimuovere la protezione dal soletto di montaggio",
-                "carrello": "74"
-            },
-            {
-                "nome": "Rimuovere il collante dalla scarpa",
-                "carrello": "74"
-            },
-            {
-                "nome": "Rimuovere il segno a dima dalla scarpa",
-                "carrello": "74"
-            },
-            {
-                "nome": "Caricare il frigo",
-                "carrello": "74"
-            },
-            {
-                "nome": "Scaricare il frigo",
-                "carrello": "74"
-            },
-            {
-                "nome": "Rimuovere la scarpa dalla forma",
-                "carrello": "74"
-            }
-        ],
-        "Premonta": [
-            {
-                "nome": "(LS) Rinforzare la tomaia con l'adesivo",
-                "carrello": "11"
-            },
-            {
-                "nome": "(LS) Applicare l'ammorbidente sulla tomaia",
-                "carrello": "11"
-            },
-            {
-                "nome": "(LS) Fermare la tomaia con chiodi/spille/grappette per premonta",
-                "carrello": "11"
-            },
-            {
-                "nome": "Chiudere la punta della tomaia con premonta",
-                "carrello": "11"
-            },
-            {
-                "nome": "Applicare il collante sui fianchi della tomaia premontata",
-                "carrello": "11"
-            },
-            {
-                "nome": "(LS) Utilizzare la garbatrice",
-                "carrello": "11"
-            },
-            {
-                "nome": "(LS) Applicare il collante sulla punta della tomaia",
-                "carrello": "11"
-            }
-        ],
-        "Montaggio manuale": [
-            {
-                "nome": "(LS) Chiudere la scarpa manualmente",
-                "carrello": "20"
-            },
-            {
-                "nome": "Chiudere i lacci/fasce anteriori della tomaia (corta)",
-                "carrello": "20"
-            },
-            {
-                "nome": "Chiudere i lacci/fasce anteriori della tomaia (lunga)",
-                "carrello": "20"
-            },
-            {
-                "nome": "Chiudere i lacci/fasce posteriori della tomaia",
-                "carrello": "20"
-            },
-            {
-                "nome": "(LS) Fermare la tomaia con chiodi/spille/grappette per calzera",
-                "carrello": "20"
-            },
-            {
-                "nome": "Chiudere gli scolli della tomaia",
-                "carrello": "20"
-            },
-            {
-                "nome": "Chiudere gli scolli e i fianchi della tomaia",
-                "carrello": "20"
-            },
-            {
-                "nome": "(LS) Applicare il sostegno di pelle alla tomaia",
-                "carrello": "20"
-            },
-            {
-                "nome": "(LS) Fermare la fodera con chiodi/spille/grappette/corda",
-                "carrello": "20"
-            },
-            {
-                "nome": "(LS) Chiudere la fodera manualmente",
-                "carrello": "20"
-            },
-            {
-                "nome": "(LS) Applicare il collante sulla fodera",
-                "carrello": "20"
-            },
-            {
-                "nome": "(LS) Applicare il collante spray sulla tomaia",
-                "carrello": "20"
-            }
-        ],
-        "Ribattitura e rimozione chiodi": [
-            {
-                "nome": "Ribattere la tomaia con martello",
-                "carrello": "33"
-            },
-            {
-                "nome": "Stirare la tomaia esternamente (1)",
-                "carrello": "33"
-            },
-            {
-                "nome": "Rimuovere i chiodi dal soletto di montaggio (1)",
-                "carrello": "33"
-            },
-            {
-                "nome": "Applicare il collante sui punti rialzati della tomaia premontata",
-                "carrello": "33"
-            }
-        ],
-        "Calzera": [
-            {
-                "nome": "Chiudere il dietro della tomaia",
-                "carrello": "25"
-            },
-            {
-                "nome": "Caricare il forno",
-                "carrello": "25"
-            }
-        ],
-        "Suolatura": [
-            {
-                "nome": "(LS) Rimuovere l'adesivo di ritenuta dal soletto di montaggio",
-                "carrello": "68"
-            },
-            {
-                "nome": "Applicare la colla americana sul tacco",
-                "carrello": "68"
-            },
-            {
-                "nome": "(LS) Applicare il collante sul tacco",
-                "carrello": "68"
-            },
-            {
-                "nome": "Utilizzare la prefissa (corta)",
-                "carrello": "68"
-            },
-            {
-                "nome": "Utilizzare la prefissa (lunga)",
-                "carrello": "68"
-            },
-            {
-                "nome": "Avvitare manualmente il tacco",
-                "carrello": "68"
-            },
-            {
-                "nome": "Utilizzare la pressa (corta)",
-                "carrello": "68"
-            },
-            {
-                "nome": "Utilizzare la pressa (lunga)",
-                "carrello": "68"
-            }
-        ],
-        "Sgrossatura": [
-            {
-                "nome": "(LS) Rimuovere la protezione dalla tomaia",
-                "carrello": "36"
-            },
-            {
-                "nome": "Scaricare il forno",
-                "carrello": "36"
-            },
-            {
-                "nome": "Sgrossare la tomaia",
-                "carrello": "36"
-            }
-        ],
-        "Segno a dima e boetta": [
-            {
-                "nome": "Applicare il rinforzo per infradito",
-                "carrello": "40"
-            },
-            {
-                "nome": "Utilizzare la ribattitrice",
-                "carrello": "40"
-            },
-            {
-                "nome": "Segnare a dima la tomaia",
-                "carrello": "40"
-            },
-            {
-                "nome": "Utilizzare la boettatrice",
-                "carrello": "40"
-            }
-        ],
-        "Cardatura fine": [
-            {
-                "nome": "Cardare finemente la tomaia con la ruzzola",
-                "carrello": "51"
-            },
-            {
-                "nome": "Cardare finemente la tomaia con il frullino",
-                "carrello": "51"
-            }
-        ],
-        "Incollaggio suola": [
-            {
-                "nome": "Applicare il collante sulla suola",
-                "carrello": "53"
-            },
-            {
-                "nome": "(LS) Applicare la gommapiuma sulla suola",
-                "carrello": "53"
-            }
-        ],
-        "Incollaggio tomaia": [
-            {
-                "nome": "(LS) Applicare i rinforzi sul soletto di montaggio",
-                "carrello": "59"
-            },
-            {
-                "nome": "Applicare il collante sulla tomaia montata",
-                "carrello": "59"
-            },
-            {
-                "nome": "Applicare la gommapiuma sul soletto di montaggio",
-                "carrello": "59"
-            }
-        ],
-        "Inchiodatura": [
-            {
-                "nome": "Utilizzare l'inchiodatacchi",
-                "carrello": "84"
-            },
-            {
-                "nome": "Rimuovere i chiodi dal soletto di montaggio (2)",
-                "carrello": "84"
-            }
-        ]
-    },
-    "RIFINITURA 1": {
-        "Carico manovia": [
-            {
-                "nome": "Caricare la scarpa in manovia",
-                "carrello": "1"
-            },
-            {
-                "nome": "Caricare il soletto di pulizia in manovia",
-                "carrello": "1"
-            },
-            {
-                "nome": "Applicare il salvachiodi sul soletto di montaggio",
-                "carrello": "1"
-            },
-            {
-                "nome": "(LS) Applicare la piantella sul soletto di montaggio",
-                "carrello": "1"
-            },
-            {
-                "nome": "Applicare il collante sul soletto di montaggio (2)",
-                "carrello": "1"
-            },
-            {
-                "nome": "Applicare il collante sul salvachiodi",
-                "carrello": "1"
-            },
-            {
-                "nome": "(LS) Applicare l'aggrappante sul soletto di montaggio",
-                "carrello": "1"
-            },
-            {
-                "nome": "Lavare il soletto di montaggio",
-                "carrello": "1"
-            },
-            {
-                "nome": "Ribattere il soletto di montaggio con il martello",
-                "carrello": "1"
-            },
-            {
-                "nome": "(LS) Rifilare la fodera",
-                "carrello": "1"
-            }
-        ],
-        "Applicazione accessorio": [
-            {
-                "nome": "Applicare l'accessorio sulla tomaia",
-                "carrello": "28"
-            },
-            {
-                "nome": "Applicare gli strass sulle parti mancanti",
-                "carrello": "28"
-            },
-            {
-                "nome": "(LS) Rimuovere la protezione dall'accessorio/tomaia",
-                "carrello": "28"
-            }
-        ],
-        "Applicazione soletta di pulizia": [
-            {
-                "nome": "Applicare il collante sul soletto di pulizia",
-                "carrello": "9"
-            },
-            {
-                "nome": "Applicare il soletto di pulizia (corta)",
-                "carrello": "9"
-            },
-            {
-                "nome": "Applicare il soletto di pulizia (media)",
-                "carrello": "9"
-            },
-            {
-                "nome": "Applicare il soletto di pulizia (lunga)",
-                "carrello": "9"
-            }
-        ],
-        "Pulizia interna": [
-            {
-                "nome": "Pulire la scarpa internamente",
-                "carrello": "15"
-            },
-            {
-                "nome": "Chiudere la fibbia della scarpa",
-                "carrello": "15"
-            },
-            {
-                "nome": "Allacciare la scarpa",
-                "carrello": "15"
-            }
-        ],
-        "Stiratura interna e ritocco": [
-            {
-                "nome": "Stirare la fodera",
-                "carrello": "33"
-            },
-            {
-                "nome": "Stirare il soletto di pulizia",
-                "carrello": "33"
-            },
-            {
-                "nome": "Ritoccare la scarpa (1)",
-                "carrello": "33"
-            },
-            {
-                "nome": "Utilizzare la ribattiscolli",
-                "carrello": "33"
-            },
-            {
-                "nome": "Stirare la puntina del soletto di montaggio",
-                "carrello": "33"
-            },
-            {
-                "nome": "Utilizzare la siberiana",
-                "carrello": "33"
-            },
-            {
-                "nome": "Utilizzare la stiragambali",
-                "carrello": "33"
-            }
-        ],
-        "Stiratura esterna": [
-            {
-                "nome": "Stirare la tomaia esternamente (2)",
-                "carrello": "42"
-            },
-            {
-                "nome": "Stirare il tacco",
-                "carrello": "42"
-            },
-            {
-                "nome": "Stirare il bordo del soletto di montaggio",
-                "carrello": "42"
-            },
-            {
-                "nome": "Stirare il plateau",
-                "carrello": "42"
-            },
-            {
-                "nome": "(LS) Spazzolare la scarpa",
-                "carrello": "42"
-            },
-            {
-                "nome": "Rimuovere la pellicola dalla suola",
-                "carrello": "42"
-            },
-            {
-                "nome": "Applicare il pittogramma",
-                "carrello": "42"
-            }
-        ],
-        "Spazzolina e pulizia esterna": [
-            {
-                "nome": "Pulire la scarpa esternamente",
-                "carrello": "21"
-            },
-            {
-                "nome": "Pulire la lissa con la spazzolina",
-                "carrello": "21"
-            }
-        ],
-        "Impallatura": [
-            {
-                "nome": "Inserire la carta riempitiva/stecca nella scarpa (1 palla)",
-                "carrello": "38"
-            },
-            {
-                "nome": "Inserire la carta riempitiva/stecca nella scarpa (2 palle)",
-                "carrello": "38"
-            },
-            {
-                "nome": "Inserire la carta riempitiva/stecca nella scarpa (3 palle)",
-                "carrello": "38"
-            }
-        ],
-        "Spazzolatura e lissatura": [
-            {
-                "nome": "(LS) Dare la cera",
-                "carrello": "46"
-            },
-            {
-                "nome": "Lissare la suola",
-                "carrello": "46"
-            },
-            {
-                "nome": "Utilizzare la spazzola lucidante",
-                "carrello": "46"
-            },
-            {
-                "nome": "Utilizzare la spazzola abrasiva",
-                "carrello": "46"
-            }
-        ],
-        "Ritocco": [
-            {
-                "nome": "Ordinare i lacci della scarpa",
-                "carrello": "56"
-            },
-            {
-                "nome": "Ritoccare la scarpa (2)",
-                "carrello": "56"
-            },
-            {
-                "nome": "Stirare la suola",
-                "carrello": "56"
-            }
-        ],
-        "Lavorazioni particolari": [
-            {
-                "nome": "(LS) Fasciare l’accessorio/fiocco",
-                "carrello": "61"
-            }
-        ],
-        "Scatolatura": [
-            {
-                "nome": "(LS) Inserire i lacci nel portalacci",
-                "carrello": "61"
-            },
-            {
-                "nome": "Scatolare la scarpa (corta)",
-                "carrello": "61"
-            },
-            {
-                "nome": "Scatolare la scarpa (lunga)",
-                "carrello": "61"
-            }
-        ]
-    },
-    "RIFINITURA 2": {
-        "Carico manovia": [
-            {
-                "nome": "Caricare la scarpa in manovia",
-                "carrello": "1"
-            },
-            {
-                "nome": "Caricare il soletto di pulizia in manovia",
-                "carrello": "1"
-            },
-            {
-                "nome": "Applicare il salvachiodi sul soletto di montaggio",
-                "carrello": "1"
-            },
-            {
-                "nome": "(LS) Applicare la piantella sul soletto di montaggio",
-                "carrello": "1"
-            },
-            {
-                "nome": "Applicare il collante sul soletto di montaggio (2)",
-                "carrello": "1"
-            },
-            {
-                "nome": "Applicare il collante sul salvachiodi",
-                "carrello": "1"
-            },
-            {
-                "nome": "(LS) Applicare l'aggrappante sul soletto di montaggio",
-                "carrello": "1"
-            },
-            {
-                "nome": "Lavare il soletto di montaggio",
-                "carrello": "1"
-            },
-            {
-                "nome": "Ribattere il soletto di montaggio con il martello",
-                "carrello": "1"
-            }
-        ],
-        "Applicazione accessorio": [
-            {
-                "nome": "Applicare l'accessorio sulla tomaia",
-                "carrello": "33"
-            },
-            {
-                "nome": "Applicare gli strass sulle parti mancanti",
-                "carrello": "33"
-            }
-        ],
-        "Applicazione soletta di pulizia": [
-            {
-                "nome": "Applicare il collante sul soletto di pulizia",
-                "carrello": "10"
-            },
-            {
-                "nome": "Applicare il soletto di pulizia (corta)",
-                "carrello": "10"
-            },
-            {
-                "nome": "Applicare il soletto di pulizia (media)",
-                "carrello": "10"
-            },
-            {
-                "nome": "Applicare il soletto di pulizia (lunga)",
-                "carrello": "10"
-            }
-        ],
-        "Lavorazioni particolari": [
-            {
-                "nome": "(LS) Rifilare la fodera",
-                "carrello": "30"
-            },
-            {
-                "nome": "Utilizzare la siberiana",
-                "carrello": "30"
-            },
-            {
-                "nome": "Utilizzare la stiragambali",
-                "carrello": "30"
-            },
-            {
-                "nome": "Allacciare la scarpa",
-                "carrello": "30"
-            },
-            {
-                "nome": "(LS) Fasciare l’accessorio/fiocco",
-                "carrello": "30"
-            },
-            {
-                "nome": "(LS) Inserire i lacci nel portalacci",
-                "carrello": "30"
-            }
-        ],
-        "Pulizia interna": [
-            {
-                "nome": "Pulire la scarpa internamente",
-                "carrello": "16"
-            },
-            {
-                "nome": "Chiudere la fibbia della scarpa",
-                "carrello": "16"
-            },
-            {
-                "nome": "(LS) Rimuovere la protezione dall'accessorio/tomaia",
-                "carrello": "16"
-            }
-        ],
-        "Stiratura interna": [
-            {
-                "nome": "Stirare la fodera",
-                "carrello": "34"
-            },
-            {
-                "nome": "Stirare il soletto di pulizia",
-                "carrello": "34"
-            },
-            {
-                "nome": "Ritoccare la scarpa (1)",
-                "carrello": "34"
-            },
-            {
-                "nome": "Utilizzare la ribattiscolli",
-                "carrello": "34"
-            },
-            {
-                "nome": "Stirare la puntina del soletto di montaggio",
-                "carrello": "34"
-            }
-        ],
-        "Stiratura esterna": [
-            {
-                "nome": "Stirare la tomaia esternamente (2)",
-                "carrello": "38"
-            },
-            {
-                "nome": "Stirare il tacco",
-                "carrello": "38"
-            },
-            {
-                "nome": "Stirare il bordo del soletto di montaggio",
-                "carrello": "38"
-            },
-            {
-                "nome": "Stirare il plateau",
-                "carrello": "38"
-            },
-            {
-                "nome": "(LS) Spazzolare la scarpa",
-                "carrello": "38"
-            },
-            {
-                "nome": "Rimuovere la pellicola dalla suola",
-                "carrello": "38"
-            }
-        ],
-        "Pulizia esterna": [
-            {
-                "nome": "Pulire la scarpa esternamente",
-                "carrello": "26"
-            }
-        ],
-        "Spazzolina": [
-            {
-                "nome": "Pulire la lissa con la spazzolina",
-                "carrello": "22"
-            }
-        ],
-        "Impallatura": [
-            {
-                "nome": "Inserire la carta riempitiva/stecca nella scarpa (1 palla)",
-                "carrello": "47"
-            },
-            {
-                "nome": "Inserire la carta riempitiva/stecca nella scarpa (2 palle)",
-                "carrello": "47"
-            },
-            {
-                "nome": "Inserire la carta riempitiva/stecca nella scarpa (3 palle)",
-                "carrello": "47"
-            }
-        ],
-        "Spazzolatura e lissatura": [
-            {
-                "nome": "(LS) Dare la cera",
-                "carrello": "45"
-            },
-            {
-                "nome": "Applicare il pittogramma",
-                "carrello": "45"
-            },
-            {
-                "nome": "Lissare la suola",
-                "carrello": "45"
-            },
-            {
-                "nome": "Utilizzare la spazzola lucidante",
-                "carrello": "45"
-            },
-            {
-                "nome": "Utilizzare la spazzola abrasiva",
-                "carrello": "45"
-            }
-        ],
-        "Scatolatura": [
-            {
-                "nome": "Ordinare i lacci della scarpa",
-                "carrello": "62"
-            },
-            {
-                "nome": "Scatolare la scarpa (corta)",
-                "carrello": "62"
-            },
-            {
-                "nome": "Scatolare la scarpa (lunga)",
-                "carrello": "62"
-            }
-        ],
-        "Ritocco": [
-            {
-                "nome": "Ritoccare la scarpa (2)",
-                "carrello": "52"
-            },
-            {
-                "nome": "Stirare la suola",
-                "carrello": "52"
-            }
-        ]
-    }
-};
+  const WORKS_BY_LINE_STATION = {};
 
   const state = {
     currentStep: 1,
@@ -1314,6 +95,7 @@ const InserimentoPresenzeApp = (() => {
     user: null,
     currentUserProfile: null,
     operators: [],
+    workOperations: [],
     operatorSearchIndex: [],
     lastOperatorsLoadError: "",
     setup: {
@@ -2177,6 +959,9 @@ function handleResetRows() {
 
     if (!state.operators.length) {
       await loadOperatorsFromDatabase();
+    }
+    if (!state.workOperations.length) {
+      await loadWorkOperationsFromDatabase();
     }
 
     const activeOperators = state.operators.filter(
@@ -4473,6 +3258,30 @@ function handleRowTableInteraction(event) {
   }
 
 
+
+  async function loadWorkOperationsFromDatabase() {
+    if (!client) return;
+    try {
+      const response = await client
+        .from("work_operations")
+        .select("id,linea,postazione,lavorazione,carrello,is_active,sort_order")
+        .eq("is_active", true)
+        .order("linea", { ascending: true })
+        .order("postazione", { ascending: true })
+        .order("sort_order", { ascending: true })
+        .order("lavorazione", { ascending: true });
+      if (response.error) {
+        console.warn("Tabella work_operations non disponibile:", response.error.message);
+        state.workOperations = [];
+        return;
+      }
+      state.workOperations = Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+      console.warn("Errore caricamento work_operations:", error);
+      state.workOperations = [];
+    }
+  }
+
   function normalizeWorkItem(item, fallbackCarrello) {
     if (item && typeof item === "object") {
       return {
@@ -4490,6 +3299,24 @@ function handleRowTableInteraction(event) {
     return work.nome + "||" + work.carrello;
   }
   function getWorkOptions(lineName, stationName) {
+    const dbWorks = Array.isArray(state.workOperations)
+      ? state.workOperations.filter((item) => {
+          return normalizeText(item.linea) === normalizeText(lineName) &&
+            normalizeText(item.postazione) === normalizeText(stationName) &&
+            item.is_active !== false;
+        })
+      : [];
+    if (dbWorks.length) {
+      return dbWorks
+        .sort((a, b) => {
+          const orderA = Number(a.sort_order) || 0;
+          const orderB = Number(b.sort_order) || 0;
+          if (orderA !== orderB) return orderA - orderB;
+          return String(a.lavorazione || "").localeCompare(String(b.lavorazione || ""), "it");
+        })
+        .map((item) => normalizeWorkItem({ nome: item.lavorazione, carrello: item.carrello }))
+        .filter((item) => item.nome);
+    }
     const lineMap = WORKS_BY_LINE_STATION[lineName] || {};
     const works = Array.isArray(lineMap[stationName]) ? lineMap[stationName] : [];
     return works.map((item) => normalizeWorkItem(item)).filter((item) => item.nome);
@@ -5111,13 +3938,109 @@ document.addEventListener("DOMContentLoaded", () => {
     }).join("");
   }
 
+  async function loadWorkOperationsArea() {
+    const box = $("applicationWorkConfigPanel");
+    if (!box || !client) return;
+    const res = await client
+      .from("work_operations")
+      .select("id,linea,postazione,lavorazione,carrello,is_active,sort_order")
+      .order("linea", { ascending: true })
+      .order("postazione", { ascending: true })
+      .order("sort_order", { ascending: true })
+      .order("lavorazione", { ascending: true });
+    if (res.error) {
+      showMessage($("applicationAreaMessage"), res.error.message, "error");
+      return;
+    }
+    appState.workOperations = res.data || [];
+    renderWorkOperationsTable();
+  }
+
   function renderWorkConfigArea() {
     const box = $("applicationWorkConfigPanel");
     if (!box) return;
     box.innerHTML = `
-      <h3 class="admin-subtitle">Lavorazioni configurate</h3>
-      <div class="message info">Le lavorazioni sono attualmente configurate nel file <strong>app.js</strong>. Per una gestione completa da frontend serve creare una tabella Supabase dedicata, ad esempio <strong>work_config</strong>. Questa area rimane fissa nel pannello e non fa sparire il selettore.</div>
+      <h3 class="admin-subtitle">Lavorazioni</h3>
+      <div class="actions toolbar">
+        <button id="newWorkOperationBtn" class="btn btn-primary" type="button">Nuova lavorazione</button>
+        <button id="refreshWorkOperationsBtn" class="btn btn-secondary" type="button">Aggiorna lavorazioni</button>
+      </div>
+      <div class="table-wrap">
+        <table class="attendance-table">
+          <thead>
+            <tr>
+              <th>Linea</th><th>Postazione</th><th>Lavorazione</th><th>Carrello</th><th>Ordine</th><th>Attiva</th><th>Azioni</th>
+            </tr>
+          </thead>
+          <tbody id="workOperationsAdminBody"><tr><td colspan="7"><div class="muted">Caricamento lavorazioni...</div></td></tr></tbody>
+        </table>
+      </div>
     `;
+    $("newWorkOperationBtn").onclick = () => openWorkOperationEditor(null);
+    $("refreshWorkOperationsBtn").onclick = loadWorkOperationsArea;
+    loadWorkOperationsArea();
+  }
+
+  function renderWorkOperationsTable() {
+    const body = $("workOperationsAdminBody");
+    if (!body) return;
+    const rows = appState.workOperations || [];
+    if (!rows.length) {
+      body.innerHTML = `<tr><td colspan="7"><div class="muted">Nessuna lavorazione configurata.</div></td></tr>`;
+      return;
+    }
+    body.innerHTML = rows.map((row) => `
+      <tr>
+        <td>${esc(row.linea || "-")}</td>
+        <td>${esc(row.postazione || "-")}</td>
+        <td>${esc(row.lavorazione || "-")}</td>
+        <td>${esc(row.carrello || "-")}</td>
+        <td>${esc(row.sort_order || 0)}</td>
+        <td>${row.is_active ? "Sì" : "No"}</td>
+        <td>
+          <button class="btn btn-secondary btn-small" data-edit-work="${esc(row.id)}">Modifica</button>
+          <button class="btn btn-secondary btn-small" data-toggle-work="${esc(row.id)}">${row.is_active ? "Disattiva" : "Riattiva"}</button>
+        </td>
+      </tr>
+    `).join("");
+    body.querySelectorAll("button[data-edit-work]").forEach((button) => button.onclick = () => {
+      const row = rows.find((item) => String(item.id) === String(button.dataset.editWork));
+      openWorkOperationEditor(row);
+    });
+    body.querySelectorAll("button[data-toggle-work]").forEach((button) => button.onclick = async () => {
+      const row = rows.find((item) => String(item.id) === String(button.dataset.toggleWork));
+      if (!row) return;
+      const response = await client.from("work_operations").update({ is_active: !row.is_active }).eq("id", row.id).select();
+      if (response.error) showMessage($("applicationAreaMessage"), response.error.message, "error");
+      else loadWorkOperationsArea();
+    });
+  }
+
+  async function openWorkOperationEditor(row) {
+    const current = row || { linea: "", postazione: "", lavorazione: "", carrello: "", sort_order: 0, is_active: true };
+    const raw = prompt(
+      "Modifica lavorazione in formato: LINEA | POSTAZIONE | LAVORAZIONE | CARRELLO | ORDINE | ATTIVA(true/false)",
+      [current.linea, current.postazione, current.lavorazione, current.carrello || "", current.sort_order || 0, current.is_active !== false].join(" | ")
+    );
+    if (!raw) return;
+    const parts = raw.split("|").map((item) => item.trim());
+    if (parts.length < 3 || !parts[0] || !parts[1] || !parts[2]) {
+      showMessage($("applicationAreaMessage"), "Dati non validi. Servono almeno linea, postazione e lavorazione.", "error");
+      return;
+    }
+    const payload = {
+      linea: parts[0],
+      postazione: parts[1],
+      lavorazione: parts[2],
+      carrello: parts[3] || "",
+      sort_order: Number(parts[4]) || 0,
+      is_active: parts[5] === undefined ? true : String(parts[5]).toLowerCase() !== "false"
+    };
+    const response = row && row.id
+      ? await client.from("work_operations").update(payload).eq("id", row.id).select()
+      : await client.from("work_operations").insert(payload).select();
+    if (response.error) showMessage($("applicationAreaMessage"), response.error.message, "error");
+    else loadWorkOperationsArea();
   }
 
   document.addEventListener("DOMContentLoaded", function () {
