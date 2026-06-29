@@ -1457,6 +1457,10 @@ dom.attendanceTableBody = document.getElementById("attendanceTableBody");
     dom.usersAdminMessage = document.getElementById("usersAdminMessage");
     dom.usersAdminTableBody = document.getElementById("usersAdminTableBody");
     dom.openAttendanceFromApplicationBtn = document.getElementById("openAttendanceFromApplicationBtn");
+    dom.newAppUserEmailInput = document.getElementById("newAppUserEmailInput");
+    dom.newAppUserIdInput = document.getElementById("newAppUserIdInput");
+    dom.newAppUserRoleInput = document.getElementById("newAppUserRoleInput");
+    dom.addAppUserBtn = document.getElementById("addAppUserBtn");
     dom.operatorsSearchInput = document.getElementById("operatorsSearchInput");
     dom.operatorsLineFilter = document.getElementById("operatorsLineFilter");
     dom.operatorsStatusFilter = document.getElementById("operatorsStatusFilter");
@@ -1819,6 +1823,10 @@ function handleResetRows() {
         await loadUsersAdmin();
       });
     }
+    if (dom.addAppUserBtn) {
+      dom.addAppUserBtn.addEventListener("click", handleAddAppUser);
+    }
+
     if (dom.usersAdminTableBody) {
       dom.usersAdminTableBody.addEventListener("click", handleUsersAdminClick);
     }
@@ -3759,6 +3767,44 @@ function handleRowTableInteraction(event) {
 
 
 
+
+  async function handleAddAppUser() {
+    if (!client || !canManageOperators()) return;
+    const email = (dom.newAppUserEmailInput ? dom.newAppUserEmailInput.value : "").trim();
+    const userId = (dom.newAppUserIdInput ? dom.newAppUserIdInput.value : "").trim();
+    const role = (dom.newAppUserRoleInput ? dom.newAppUserRoleInput.value : "user").trim() || "user";
+    if (!email || !userId) {
+      showBox(dom.usersAdminMessage, "Inserisci email e UUID Supabase Auth dell'utente.", "error");
+      return;
+    }
+    const isAdmin = normalizeText(role) === "ADMIN";
+    setButtonLoading(dom.addAppUserBtn, true, "Aggiungo...");
+    hideBox(dom.usersAdminMessage);
+    try {
+      const response = await client
+        .from("app_users")
+        .upsert({
+          user_id: userId,
+          email: email,
+          role: isAdmin ? "admin" : "user",
+          can_manage_operators: isAdmin,
+          is_active: true
+        }, { onConflict: "user_id" })
+        .select();
+      if (response.error) throw response.error;
+      if (dom.newAppUserEmailInput) dom.newAppUserEmailInput.value = "";
+      if (dom.newAppUserIdInput) dom.newAppUserIdInput.value = "";
+      if (dom.newAppUserRoleInput) dom.newAppUserRoleInput.value = "user";
+      await loadUsersAdmin();
+      showBox(dom.usersAdminMessage, "Utente aggiunto/aggiornato correttamente in Gestione applicazione.", "success");
+    } catch (error) {
+      console.error("Errore aggiunta utente:", error);
+      showBox(dom.usersAdminMessage, error.message || "Errore durante l'aggiunta utente.", "error");
+    } finally {
+      setButtonLoading(dom.addAppUserBtn, false, "Aggiungi utente a Gestione applicazione");
+    }
+  }
+
   async function loadUsersAdmin() {
     if (!client || !canManageOperators()) return;
     hideBox(dom.usersAdminMessage);
@@ -3771,7 +3817,7 @@ function handleRowTableInteraction(event) {
       if (response.error) throw response.error;
       state.usersAdmin.rows = Array.isArray(response.data) ? response.data : [];
       renderUsersAdmin();
-      showBox(dom.usersAdminMessage, "Utenti caricati correttamente.", "success");
+      showBox(dom.usersAdminMessage, "Utenti caricati da app_users. Se mancano utenti, aggiungili con email e UUID da Authentication > Users.", "success");
     } catch (error) {
       console.error("Errore caricamento utenti:", error);
       showBox(dom.usersAdminMessage, error.message || "Errore caricamento utenti.", "error");
