@@ -52,3 +52,8 @@
 }
 
 .full-admin-panel{border:1px solid #bfd7f3;background:#f8fbff}.users-admin-table td{vertical-align:middle}.full-admin-panel .card-header h3{margin:0 0 4px;color:#173b70}
+
+/* V7 - Gestione applicazione pulita: niente JSON editor e niente banner presenze salvate */
+.application-admin-panel{display:none!important;}
+.users-add-grid{margin-top:14px;margin-bottom:8px;}
+.full-admin-panel{margin-bottom:18px;}
