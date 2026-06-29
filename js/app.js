@@ -3301,8 +3301,9 @@ function handleRowTableInteraction(event) {
   function getWorkOptions(lineName, stationName) {
     const dbWorks = Array.isArray(state.workOperations)
       ? state.workOperations.filter((item) => {
-          return normalizeText(item.linea) === normalizeText(lineName) &&
-            normalizeText(item.postazione) === normalizeText(stationName) &&
+          return normalizeText(item.linea).trim() === normalizeText(lineName).trim()
+                  && normalizeText(item.postazione).trim().includes(normalizeText(stationName).trim())
+
             item.is_active !== false;
         })
       : [];
