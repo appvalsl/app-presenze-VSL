@@ -217,7 +217,28 @@
                     </div>
                   </div>
                 </div>
+
+                <div class="setup-block setup-block-summary">
+                  <div class="setup-block-head">
+                    <div class="setup-block-number">3</div>
+                    <div>
+                      <h4>Controllo finale</h4>
+                      <p>Verifica i valori calcolati prima di passare all'inserimento degli operatori.</p>
+                    </div>
+                  </div>
+                  <div class="setup-summary-highlight setup-summary-friendly">
+                    <div class="summary-block">
+                      <span class="label">Ore lavorabili</span>
+                      <span class="value" id="summaryWork">--</span>
+                    </div>
+                    <div class="summary-block">
+                      <span class="label">Tempo produttivo netto</span>
+                      <span class="value" id="summaryNet">--</span>
+                    </div>
+                  </div>
+                </div>
               </div>
+
               <div id="step3" class="wizard-step hidden" data-step="3">
                 <h3>Step 3 - Riepilogo setup</h3>
                 <div id="setupSummaryBox" class="summary-box"></div>
@@ -331,7 +352,7 @@
                 <div class="field"><label for="plannedAbsenceEndDate">Al giorno</label><input id="plannedAbsenceEndDate" type="date"></div>
                 <div class="field"><label for="plannedAbsenceOperator">Operatore</label><input id="plannedAbsenceOperator" list="plannedAbsenceOperatorsList" type="text" placeholder="Cerca operatore"><datalist id="plannedAbsenceOperatorsList"></datalist></div>
                 <div class="field"><label for="plannedAbsenceHours">Ore assenza al giorno</label><input id="plannedAbsenceHours" type="number" min="0" step="0.25" value="8"></div>
-                <input id="plannedAbsenceStandardHours" type="hidden" value="8">
+                <div class="field"><label for="plannedAbsenceStandardHours">Ore standard assenze programmate</label><input id="plannedAbsenceStandardHours" type="number" min="0" step="0.25" value="8"></div>
                 <div class="field"><label for="plannedAbsenceFte">FTE assenza programmabili</label><input id="plannedAbsenceFte" type="number" min="0" step="0.01" value="1" readonly></div>
                 <div class="field"><label for="plannedAbsenceReason">Motivo</label><select id="plannedAbsenceReason"><option value="FERIE">FERIE</option><option value="PERMESSO">PERMESSO</option><option value="MALATTIA">MALATTIA</option><option value="VISITA MEDICA">VISITA MEDICA</option><option value="104">104</option><option value="ASPETTATIVA">ASPETTATIVA</option><option value="CORSO">CORSO</option><option value="TRASFERTA">TRASFERTA</option><option value="SCIOPERO">SCIOPERO</option><option value="ALTRO">ALTRO</option></select></div>
                 <div class="field field-span-3"><label for="plannedAbsenceNotes">Note opzionali</label><textarea id="plannedAbsenceNotes" rows="3" placeholder="Esempio: ferie dal 12 al 20 agosto, corso interno, permesso breve..."></textarea></div>
@@ -348,6 +369,7 @@
 
               <section class="card planned-section planned-section-summary">
                 <div class="planned-section-head"><div class="planned-section-number">3</div><div><h3>Riepilogo e filtri</h3><p>Usa questi campi per restringere l'elenco e trovare velocemente una registrazione.</p></div></div>
+                <div id="plannedAbsenceStats" class="summary-box compact planned-stats"></div>
                 <div class="planned-filter-box"><div class="form-grid form-grid-3">
                   <div class="field"><label for="plannedAbsenceFromFilter">Dal</label><input id="plannedAbsenceFromFilter" type="date"></div>
                   <div class="field"><label for="plannedAbsenceToFilter">Al</label><input id="plannedAbsenceToFilter" type="date"></div>
