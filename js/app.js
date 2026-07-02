@@ -4189,8 +4189,18 @@ document.addEventListener("DOMContentLoaded", () => {
   async function clickTable(e){ const b=e.target.closest("button[data-action]"); if(!b) return; const row=state.absences.find(x=>String(x.id)===String(b.dataset.id)); if(!row) return; if(!canEdit(row)){ show($("plannedAbsencesMessage"),"Non sei autorizzato.","error"); return; } if(b.dataset.action==="edit"){ fill(row); return; } if(confirm("Eliminare questa assenza?")){ const r=await client.from("planned_absences").delete().eq("id",row.id); if(r.error) show($("plannedAbsencesMessage"),r.error.message,"error"); else { await loadAbsences(); render(); show($("plannedAbsencesMessage"),"Assenza eliminata correttamente.","success"); } } }
   function stats(){ const box=$("plannedAbsenceStats"); if(!box) return; const h=state.filtered.reduce((a,r)=>a+(num(r.hours,0)),0); const fte=state.filtered.reduce((a,r)=>a+num(r.fte_absence_programmabili,0),0); const people=new Set(state.filtered.map(r=>r.operator_name).filter(Boolean)); box.innerHTML=`<div class="summary-item"><span class="label">Giornate filtrate</span><span class="value">${state.filtered.length}</span></div><div class="summary-item"><span class="label">Ore assenza</span><span class="value">${h.toFixed(2)}</span></div><div class="summary-item"><span class="label">FTE assenti</span><span class="value">${fte.toFixed(2)}</span></div><div class="summary-item"><span class="label">Operatori coinvolti</span><span class="value">${people.size}</span></div>`; }
   function table(){ const body=$("plannedAbsencesBody"); if(!body) return; if(!state.filtered.length){ body.innerHTML='<tr><td colspan="10"><div class="muted">Nessuna assenza trovata.</div></td></tr>'; return; } body.innerHTML=state.filtered.map(r=>`<tr><td data-label="Data">${esc(formatDateIT(r.absence_date))}</td><td data-label="Operatore"><strong>${esc(r.operator_name||"-")}</strong></td><td data-label="Linea">${esc(r.line_name||"-")}</td><td data-label="Ore assenza">${esc(num(r.hours,0).toFixed(2))}</td><td data-label="Ore std">${esc(num(r.standard_absence_hours,0).toFixed(2))}</td><td data-label="FTE">${esc(num(r.fte_absence_programmabili,0).toFixed(2))}</td><td data-label="Motivo"><span class="planned-reason-badge reason-${esc(r.reason||"ALTRO")}">${esc(r.reason||"ALTRO")}</span></td><td data-label="Note">${esc(r.notes||"-")}</td><td data-label="Inserita da"><span class="planned-owner-badge">${esc(r.created_by_email||"-")}</span></td><td data-label="Azioni"><div class="planned-actions">${canEdit(r)?`<button class="btn btn-secondary btn-small" data-action="edit" data-id="${esc(r.id)}">Modifica</button><button class="btn btn-danger btn-small" data-action="delete" data-id="${esc(r.id)}">Elimina</button>`:'<span class="muted">Solo lettura</span>'}</div></td></tr>`).join(""); }
+  function allCalendarLines(){
+    const selectedLine = $("plannedAbsenceLineFilter")?.value || "";
+    const linesSet = new Set();
+    state.operators.forEach(op => { if(op && op.line) linesSet.add(op.line); });
+    state.absences.forEach(a => { if(a && a.line_name) linesSet.add(a.line_name); });
+    let lines = Array.from(linesSet).filter(Boolean).sort((a,b)=>a.localeCompare(b,"it"));
+    if(selectedLine) lines = lines.filter(line => line === selectedLine);
+    return lines.length ? lines : ["Senza linea"];
+  }
   function lineSummaryHtml(items){
     const byLine=new Map();
+    allCalendarLines().forEach(line => byLine.set(line,{count:0,hours:0,fteAbs:0}));
     items.forEach(i=>{
       const line=i.line_name || "Senza linea";
       if(!byLine.has(line)) byLine.set(line,{count:0,hours:0,fteAbs:0});
@@ -4199,24 +4209,22 @@ document.addEventListener("DOMContentLoaded", () => {
       g.hours+=num(i.hours,0);
       g.fteAbs+=num(i.fte_absence_programmabili,0);
     });
-    return `<div class="planned-line-summary">${[...byLine.entries()].sort((a,b)=>a[0].localeCompare(b[0],"it")).map(([line,g])=>{
+    return `<div class="planned-line-summary planned-line-summary-all">${[...byLine.entries()].sort((a,b)=>a[0].localeCompare(b[0],"it")).map(([line,g])=>{
       const operatorsOfLine=state.operators.filter(op=>(op.line || "Senza linea")===line);
       const fteTot=operatorsOfLine.reduce((sum,op)=>sum+num(op.fteProgrammabili,1),0);
       const fteReal=Math.max(0, fteTot-g.fteAbs);
-      return `<div class="planned-line-pill planned-line-pill-rich">
-        <strong>${esc(line)}</strong>
-        <span>${g.count} ass. · ${g.hours.toFixed(1)}h · ${g.fteAbs.toFixed(2)} FTE assenti</span>
-        <span>FTE programmabili: ${fteTot.toFixed(2)}</span>
-        <span>FTE reali programmabili: ${fteReal.toFixed(2)}</span>
-      </div>`;
+      const completeClass = g.count === 0 ? " planned-line-complete" : "";
+      const assenzeText = g.count === 0 ? "Al completo" : `${g.count} ass. · ${g.hours.toFixed(1)}h · ${g.fteAbs.toFixed(2)} FTE assenti`;
+      return `<div class="planned-line-pill planned-line-pill-rich${completeClass}"><strong>${esc(line)}</strong><span>${assenzeText}</span><span>FTE TOTALI: ${fteTot.toFixed(2)}</span><span>FTE reali programmabili: ${fteReal.toFixed(2)}</span></div>`;
     }).join("")}</div>`;
   }
   function calendar(){
     const box=$("plannedAbsenceCalendar");
     if(!box) return;
     const m=$("plannedAbsenceMonth")?.value||currentMonth();
-    const rows=state.absences.filter(a=>String(a.absence_date||"").startsWith(m));
-    if(!rows.length){ box.innerHTML='<div class="planned-empty">Nessuna assenza nel mese selezionato.</div>'; return; }
+    const source = Array.isArray(state.filtered) ? state.filtered : state.absences;
+    const rows=source.filter(a=>String(a.absence_date||"").startsWith(m));
+    if(!rows.length){ box.innerHTML='<div class="planned-empty">Nessuna assenza trovata nel mese selezionato con i filtri attivi.</div>'; return; }
     const g=new Map();
     rows.forEach(r=>{ const d=r.absence_date||"Senza data"; if(!g.has(d)) g.set(d,[]); g.get(d).push(r); });
     box.innerHTML=[...g.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([d,items])=>`<div class="planned-day"><div class="planned-day-head"><span>${esc(formatDateIT(d))}</span><span class="planned-day-count">${items.length}</span></div>${lineSummaryHtml(items)}<ul class="planned-day-list">${items.map(i=>`<li class="planned-day-item"><span><strong>${esc(i.operator_name||"-")}</strong><small>${esc(i.line_name||"Senza linea")}</small></span><span class="planned-day-item-right">${esc(i.reason||"ALTRO")} · ${esc(num(i.hours,0).toFixed(2))}h · ${esc(num(i.fte_absence_programmabili,0).toFixed(2))} FTE ${canEdit(i)?`<button class="btn btn-danger btn-small planned-calendar-delete" data-action="delete" data-id="${esc(i.id)}" type="button">Elimina</button>`:""}</span></li>`).join("")}</ul></div>`).join("");
