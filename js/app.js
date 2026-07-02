@@ -301,6 +301,7 @@ dom.attendanceTableBody = document.getElementById("attendanceTableBody");
     showAuthenticatedUI();
 
     await loadOperatorsFromDatabase();
+    await loadWorkOperationsFromDatabase();
 
     renderAll();
   } else {
