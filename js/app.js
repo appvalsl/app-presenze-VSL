@@ -4443,6 +4443,29 @@ document.addEventListener("DOMContentLoaded", () => {
     if(!items.length) return "Nessun assente";
     return items.map(i=>`${i.operator_name || "-"} - ${i.reason || "ALTRO"} - ${num(i.hours,0).toFixed(2)}h - ${num(i.fte_absence_programmabili,0).toFixed(2)} FTE${i.notes ? " - Note: "+i.notes : ""}`).join(" | ");
   }
+  function exportSameOperator(op,row){
+    if(!op || !row) return false;
+    if(op.id !== null && op.id !== undefined && row.operator_id !== null && row.operator_id !== undefined){
+      return String(op.id) === String(row.operator_id);
+    }
+    return norm(op.name || "") === norm(row.operator_name || "");
+  }
+  function exportPresentiNote(day,line,visible){
+    const operatorsOfLine = state.operators
+      .filter(op => (op.line || "Senza linea") === line)
+      .sort((a,b)=>(a.name||"").localeCompare(b.name||"","it"));
+    if(!operatorsOfLine.length) return "Nessun operatore configurato sulla linea";
+    const presenti = operatorsOfLine.map(op => {
+      const fteBase = num(op.fteProgrammabili,1);
+      const fteAbs = visible
+        .filter(r => r.absence_date === day && (r.line_name || "Senza linea") === line && exportSameOperator(op,r))
+        .reduce((sum,r)=>sum+num(r.fte_absence_programmabili,0),0);
+      const ftePresente = Math.max(0, fteBase - fteAbs);
+      return { name: op.name || "Operatore", fte: ftePresente };
+    }).filter(item => item.fte > 0.0001);
+    if(!presenti.length) return "Nessun presente";
+    return presenti.map(item => `${item.name} - ${item.fte.toFixed(2)} FTE`).join(" | ");
+  }
   function exportPlannedAbsencesView(){
     filters();
     const visible=Array.isArray(state.filtered)?state.filtered:[];
@@ -4451,14 +4474,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const days=exportIsoRange(range.start,range.end);
     const lineList=allCalendarLines().filter(Boolean).sort((a,b)=>a.localeCompare(b,"it"));
     if(!days.length || !lineList.length){ show($("plannedAbsencesMessage"),"Non ci sono date o linee da esportare.","info"); return; }
-    const riepilogo=[["Data","Linea","FTE TOTALI","FTE assenti","FTE reali programmabili","Numero assenti","Assenti / note"]];
+    const riepilogo=[["Data","Linea","FTE TOTALI","FTE assenti","FTE reali programmabili","Numero assenti","Assenti / note","Presenti / FTE"]];
     days.forEach(day=>{
       lineList.forEach(line=>{
         const items=visible.filter(r=>r.absence_date===day && (r.line_name||"Senza linea")===line);
         const fteTot=exportLineFteTotal(line);
         const fteAbs=items.reduce((sum,r)=>sum+num(r.fte_absence_programmabili,0),0);
         const fteReal=Math.max(0,fteTot-fteAbs);
-        riepilogo.push([formatDateIT(day),line,Number(fteTot.toFixed(2)),Number(fteAbs.toFixed(2)),Number(fteReal.toFixed(2)),items.length,exportAbsenceNote(items)]);
+        riepilogo.push([formatDateIT(day),line,Number(fteTot.toFixed(2)),Number(fteAbs.toFixed(2)),Number(fteReal.toFixed(2)),items.length,exportAbsenceNote(items),exportPresentiNote(day,line,visible)]);
       });
     });
     const dettaglio=[["Data","Operatore","Linea","Ore assenza","Ore standard","FTE","Motivo","Note","Inserita da"]]
