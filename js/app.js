@@ -4374,6 +4374,143 @@ document.addEventListener("DOMContentLoaded", () => {
     box.innerHTML=[...g.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([d,items])=>`<div class="planned-day"><div class="planned-day-head"><span>${esc(formatDateIT(d))}</span><span class="planned-day-count">${items.length}</span></div>${lineSummaryHtml(items)}<ul class="planned-day-list">${items.map(i=>`<li class="planned-day-item"><span><strong>${esc(i.operator_name||"-")}</strong><small>${esc(i.line_name||"Senza linea")}</small></span><span class="planned-day-item-right">${esc(i.reason||"ALTRO")} · ${esc(num(i.hours,0).toFixed(2))}h · ${esc(num(i.fte_absence_programmabili,0).toFixed(2))} FTE ${canEdit(i)?`<button class="btn btn-danger btn-small planned-calendar-delete" data-action="delete" data-id="${esc(i.id)}" type="button">Elimina</button>`:""}</span></li>`).join("")}</ul></div>`).join("");
   }
   function render(){ lines(); filters(); stats(); table(); calendar(); }
+  function safeFilePart(value){
+    return String(value || "")
+      .replace(/[^a-zA-Z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "vista";
+  }
+  function excelXml(value){
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+  }
+  function excelColumnName(index){
+    let name = "";
+    let n = index + 1;
+    while(n > 0){
+      const rem = (n - 1) % 26;
+      name = String.fromCharCode(65 + rem) + name;
+      n = Math.floor((n - 1) / 26);
+    }
+    return name;
+  }
+  function cellXml(value, rowIndex, colIndex){
+    const ref = excelColumnName(colIndex) + rowIndex;
+    if(typeof value === "number" && Number.isFinite(value)){
+      return `<c r="${ref}"><v>${value}</v></c>`;
+    }
+    return `<c r="${ref}" t="inlineStr"><is><t>${excelXml(value)}</t></is></c>`;
+  }
+  function sheetXml(rows){
+    const body = rows.map((row, rIndex) => {
+      const rowNumber = rIndex + 1;
+      const cells = row.map((value, cIndex) => cellXml(value, rowNumber, cIndex)).join("");
+      return `<row r="${rowNumber}">${cells}</row>`;
+    }).join("");
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetData>${body}</sheetData></worksheet>`;
+  }
+  function crc32(str){
+    const table = crc32.table || (crc32.table = (() => {
+      const t = [];
+      for(let i=0;i<256;i++){
+        let c = i;
+        for(let k=0;k<8;k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+        t[i] = c >>> 0;
+      }
+      return t;
+    })());
+    let crc = 0 ^ -1;
+    for(let i=0;i<str.length;i++){
+      crc = (crc >>> 8) ^ table[(crc ^ str.charCodeAt(i)) & 0xFF];
+    }
+    return (crc ^ -1) >>> 0;
+  }
+  function uint16(value){ return String.fromCharCode(value & 255, (value >>> 8) & 255); }
+  function uint32(value){ return String.fromCharCode(value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255); }
+  function makeZip(files){
+    let localParts = "";
+    let centralParts = "";
+    let offset = 0;
+    files.forEach((file) => {
+      const name = file.name;
+      const data = unescape(encodeURIComponent(file.content));
+      const crc = crc32(data);
+      const size = data.length;
+      const localHeader = "PK\x03\x04" + uint16(20) + uint16(0) + uint16(0) + uint16(0) + uint16(0) + uint32(crc) + uint32(size) + uint32(size) + uint16(name.length) + uint16(0) + name;
+      const centralHeader = "PK\x01\x02" + uint16(20) + uint16(20) + uint16(0) + uint16(0) + uint16(0) + uint16(0) + uint32(crc) + uint32(size) + uint32(size) + uint16(name.length) + uint16(0) + uint16(0) + uint16(0) + uint16(0) + uint32(0) + uint32(offset) + name;
+      localParts += localHeader + data;
+      centralParts += centralHeader;
+      offset += localHeader.length + size;
+    });
+    const end = "PK\x05\x06" + uint16(0) + uint16(0) + uint16(files.length) + uint16(files.length) + uint32(centralParts.length) + uint32(offset) + uint16(0);
+    return localParts + centralParts + end;
+  }
+  function createXlsxBlob(sheets){
+    const sheetEntries = sheets.map((sheet, index) => ({...sheet, id:index+1}));
+    const workbookSheets = sheetEntries.map((sheet) => `<sheet name="${excelXml(sheet.name).slice(0,31)}" sheetId="${sheet.id}" r:id="rId${sheet.id}"/>`).join("");
+    const workbookRels = sheetEntries.map((sheet) => `<Relationship Id="rId${sheet.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${sheet.id}.xml"/>`).join("");
+    const files = [
+      {name:"[Content_Types].xml", content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheetEntries.map((sheet)=>`<Override PartName="/xl/worksheets/sheet${sheet.id}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`},
+      {name:"_rels/.rels", content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+      {name:"xl/workbook.xml", content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${workbookSheets}</sheets></workbook>`},
+      {name:"xl/_rels/workbook.xml.rels", content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${workbookRels}</Relationships>`}
+    ];
+    sheetEntries.forEach((sheet) => files.push({name:`xl/worksheets/sheet${sheet.id}.xml`, content:sheetXml(sheet.rows)}));
+    const zip = makeZip(files);
+    const bytes = new Uint8Array(zip.length);
+    for(let i=0;i<zip.length;i++) bytes[i] = zip.charCodeAt(i) & 0xFF;
+    return new Blob([bytes], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  }
+  function exportPlannedAbsencesView(){
+    filters();
+    const rows = Array.isArray(state.filtered) ? state.filtered : [];
+    if(!rows.length){
+      show($("plannedAbsencesMessage"), "Non ci sono assenze da esportare con i filtri attuali.", "info");
+      return;
+    }
+    const byLine = new Map();
+    rows.forEach((row) => {
+      const line = row.line_name || "Senza linea";
+      if(!byLine.has(line)) byLine.set(line, {line, giorni:0, ore:0, fte:0, persone:new Set()});
+      const group = byLine.get(line);
+      group.giorni += 1;
+      group.ore += num(row.hours, 0);
+      group.fte += num(row.fte_absence_programmabili, 0);
+      if(row.operator_name) group.persone.add(row.operator_name);
+    });
+    const summaryRows = [["Linea", "Giornate assenza", "Ore assenza", "FTE assenti", "Operatori coinvolti"]]
+      .concat([...byLine.values()].sort((a,b)=>a.line.localeCompare(b.line,"it")).map((g)=>[g.line, g.giorni, Number(g.ore.toFixed(2)), Number(g.fte.toFixed(2)), g.persone.size]));
+    const detailRows = [["Data", "Operatore", "Linea", "Ore assenza", "Ore standard", "FTE", "Motivo", "Note", "Inserita da"]]
+      .concat(rows.slice().sort((a,b)=>String(a.absence_date||"").localeCompare(String(b.absence_date||"")) || String(a.line_name||"").localeCompare(String(b.line_name||""),"it") || String(a.operator_name||"").localeCompare(String(b.operator_name||""),"it")).map((r)=>[
+        formatDateIT(r.absence_date),
+        r.operator_name || "-",
+        r.line_name || "-",
+        Number(num(r.hours,0).toFixed(2)),
+        Number(num(r.standard_absence_hours,0).toFixed(2)),
+        Number(num(r.fte_absence_programmabili,0).toFixed(2)),
+        r.reason || "ALTRO",
+        r.notes || "",
+        r.created_by_email || ""
+      ]));
+    const blob = createXlsxBlob([
+      {name:"Riepilogo linee", rows:summaryRows},
+      {name:"Dettaglio assenti", rows:detailRows}
+    ]);
+    const month = $("plannedAbsenceMonth")?.value || currentMonth();
+    const filename = `assenze_programmate_${safeFilePart(month)}_${new Date().toISOString().slice(0,10)}.xlsx`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 500);
+    show($("plannedAbsencesMessage"), "Export Excel generato correttamente.", "success");
+  }
   async function open(){ await profile(); reveal(); if(!state.user){ show($("globalMessage"),"Effettua il login.","error"); return; } view(); showChoiceOnly(); if(!$("plannedAbsenceDate").value) $("plannedAbsenceDate").value=todayIso(); if($("plannedAbsenceEndDate")&&!$("plannedAbsenceEndDate").value) $("plannedAbsenceEndDate").value=$("plannedAbsenceDate").value||todayIso(); if(!$("plannedAbsenceMonth").value) $("plannedAbsenceMonth").value=currentMonth(); await loadOperators(); await loadAbsences(); render(); updateFtePreview(); }
   function bind(){
     const top=$("openPlannedAbsencesBtn");
@@ -4392,6 +4529,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if(cancel&&!cancel.dataset.boundAbs){ cancel.dataset.boundAbs="1"; cancel.addEventListener("click",()=>{ reset(); showDashboardPanel(true); }); }
     const refresh=$("refreshPlannedAbsencesBtn");
     if(refresh&&!refresh.dataset.boundAbs){ refresh.dataset.boundAbs="1"; refresh.addEventListener("click",async()=>{ await loadAbsences(); render(); show($("plannedAbsencesMessage"),"Dati aggiornati.","success"); }); }
+    const exportBtn=$("exportPlannedAbsencesBtn");
+    if(exportBtn&&!exportBtn.dataset.boundAbs){ exportBtn.dataset.boundAbs="1"; exportBtn.addEventListener("click",exportPlannedAbsencesView); }
     const startDate=$("plannedAbsenceDate");
     const endDate=$("plannedAbsenceEndDate");
     if(startDate&&endDate&&!startDate.dataset.boundRange){ startDate.dataset.boundRange="1"; startDate.addEventListener("change",()=>{ if(!endDate.value || endDate.value<startDate.value) endDate.value=startDate.value; }); }
