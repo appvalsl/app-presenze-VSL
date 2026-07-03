@@ -1501,22 +1501,29 @@ function handleRowTableInteraction(event) {
 
   // Postazione: aggiorna senza rifare render immediato
   if (field === "postazione") {
-    row.postazione = target.value;
-    row.lavorazioni = getWorkOptions(state.setup.lineName, row.postazione);
+  row.postazione = target.value;
 
-    row.final_min = calculateFinalMinutes(
-      Number(row.work_min) || 0,
-      Number(state.setup.snackMin) || 0,
-      Number(state.setup.stopsMin) || 0,
-      Number(row.evento_min) || 0,
-      Number(row.assemblea_min) || 0,
-      Number(row.sciopero_min) || 0
-    );
+  row.lavorazioni = getWorkOptions(
+    row.line_day || state.setup.lineName,
+    row.postazione
+  );
 
-    row.dirty = true;
-    saveState();
-    return;
-  }
+  row.final_min = calculateFinalMinutes(
+    Number(row.work_min) || 0,
+    Number(state.setup.snackMin) || 0,
+    Number(state.setup.stopsMin) || 0,
+    Number(row.evento_min) || 0,
+    Number(row.assemblea_min) || 0,
+    Number(row.sciopero_min) || 0
+  );
+
+  row.dirty = true;
+
+  saveState();
+  renderRowsView();
+
+  return;
+}
 
   if (field === "lavorazione") {
     const selectedWork = normalizeWorkItem({
@@ -3728,6 +3735,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function show(el, msg, type){ if(!el) return; el.textContent=msg; el.className=`message ${type||"info"}`; el.classList.remove("hidden"); }
   function hide(el){ if(!el) return; el.textContent=""; el.className="message hidden"; }
   function isAdmin(){ return state.profile && state.profile.is_active !== false && (state.profile.can_manage_operators === true || norm(state.profile.role)==="ADMIN" || norm(state.profile.role)==="SUPERADMIN"); }
+  
+  
   async function init() {
     if (!client) return;
     setTimeout(async () => {
@@ -3740,6 +3749,10 @@ document.addEventListener("DOMContentLoaded", () => {
       bind();
     }, 500);
   }
+
+
+
+  
   async function loadProfile(){
     const session = await client.auth.getSession();
     state.user = session && session.data && session.data.session ? session.data.session.user : null;
