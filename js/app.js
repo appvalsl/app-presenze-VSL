@@ -4311,6 +4311,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if(dash) dash.classList.remove("hidden");
     if(scrollToDashboard && dash && typeof dash.scrollIntoView === "function") dash.scrollIntoView({behavior:"smooth", block:"start"});
   }
+  function showChoiceOnly(){
+    const add=$("plannedAddPanel");
+    const dash=$("plannedDashboardPanel");
+    if(add) add.classList.add("hidden");
+    if(dash) dash.classList.add("hidden");
+  }
   async function profile(){ if(!client) return; const s=await client.auth.getSession(); state.user=s&&s.data&&s.data.session?s.data.session.user:null; if(!state.user){ state.profile=null; state.isAdmin=false; state.isSuperUser=false; return; } const r=await client.from("app_users").select("*").eq("user_id",state.user.id).maybeSingle(); if(r.data){ state.profile=r.data; } else { const base={user_id:state.user.id,email:state.user.email||"",role:"user",can_manage_operators:false,is_active:true,allowed_lines:[]}; const ins=await client.from("app_users").insert(base).select().maybeSingle(); state.profile=ins.data||base; } state.isAdmin=admin(state.profile); state.isSuperUser=superUser(state.profile); }
   function reveal(){ const b=$("openPlannedAbsencesBtn"); if(b) b.classList.toggle("hidden", !state.user); }
   function view(){ ["homeView","attendanceView","operatorsAdminView","attendanceAdminView","plannedAbsencesView"].forEach(id=>{ const el=$(id); if(el) el.classList.toggle("hidden", id!=="plannedAbsencesView"); }); }
@@ -4368,7 +4374,7 @@ document.addEventListener("DOMContentLoaded", () => {
     box.innerHTML=[...g.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([d,items])=>`<div class="planned-day"><div class="planned-day-head"><span>${esc(formatDateIT(d))}</span><span class="planned-day-count">${items.length}</span></div>${lineSummaryHtml(items)}<ul class="planned-day-list">${items.map(i=>`<li class="planned-day-item"><span><strong>${esc(i.operator_name||"-")}</strong><small>${esc(i.line_name||"Senza linea")}</small></span><span class="planned-day-item-right">${esc(i.reason||"ALTRO")} · ${esc(num(i.hours,0).toFixed(2))}h · ${esc(num(i.fte_absence_programmabili,0).toFixed(2))} FTE ${canEdit(i)?`<button class="btn btn-danger btn-small planned-calendar-delete" data-action="delete" data-id="${esc(i.id)}" type="button">Elimina</button>`:""}</span></li>`).join("")}</ul></div>`).join("");
   }
   function render(){ lines(); filters(); stats(); table(); calendar(); }
-  async function open(){ await profile(); reveal(); if(!state.user){ show($("globalMessage"),"Effettua il login.","error"); return; } view(); showDashboardPanel(false); if(!$("plannedAbsenceDate").value) $("plannedAbsenceDate").value=todayIso(); if($("plannedAbsenceEndDate")&&!$("plannedAbsenceEndDate").value) $("plannedAbsenceEndDate").value=$("plannedAbsenceDate").value||todayIso(); if(!$("plannedAbsenceMonth").value) $("plannedAbsenceMonth").value=currentMonth(); await loadOperators(); await loadAbsences(); render(); updateFtePreview(); }
+  async function open(){ await profile(); reveal(); if(!state.user){ show($("globalMessage"),"Effettua il login.","error"); return; } view(); showChoiceOnly(); if(!$("plannedAbsenceDate").value) $("plannedAbsenceDate").value=todayIso(); if($("plannedAbsenceEndDate")&&!$("plannedAbsenceEndDate").value) $("plannedAbsenceEndDate").value=$("plannedAbsenceDate").value||todayIso(); if(!$("plannedAbsenceMonth").value) $("plannedAbsenceMonth").value=currentMonth(); await loadOperators(); await loadAbsences(); render(); updateFtePreview(); }
   function bind(){
     const top=$("openPlannedAbsencesBtn");
     if(top&&!top.dataset.boundAbs){ top.dataset.boundAbs="1"; top.addEventListener("click",open); }
