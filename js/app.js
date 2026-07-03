@@ -1,4 +1,4 @@
-console.log("APP AVVIATA");
+console.log("APP AVVIATA - fix lavorazioni 2026-07-03");
 
 const InserimentoPresenzeApp = (() => {
   "use strict";
@@ -300,7 +300,24 @@ dom.attendanceTableBody = document.getElementById("attendanceTableBody");
 
     showAuthenticatedUI();
 
+    // Carico SEMPRE operatori e lavorazioni.
+    // Il problema era che work_operations non veniva caricato quando le righe
+    // erano ripristinate dalla sessione del browser.
     await loadOperatorsFromDatabase();
+    await loadWorkOperationsFromDatabase();
+
+    if (state.rows.length) {
+      state.rows = state.rows.map((row) => {
+        const lineForWorks = row.line_day || state.setup.lineName || row.line_orig || "";
+        const options = getWorkOptions(lineForWorks, row.postazione);
+        return {
+          ...row,
+          line_day: lineForWorks || row.line_day || state.setup.lineName || "",
+          lavorazioni: options.length ? options : (Array.isArray(row.lavorazioni) ? row.lavorazioni : [])
+        };
+      });
+      saveState();
+    }
 
     renderAll();
   } else {
@@ -1435,7 +1452,7 @@ function handleResetRows() {
 
 
 
-function handleRowTableInteraction(event) {
+async function handleRowTableInteraction(event) {
   const target = event.target;
   if (!target) return;
 
@@ -1479,8 +1496,21 @@ function handleRowTableInteraction(event) {
   // Toggle apertura/chiusura lavorazioni
   if (action === "toggle-works") {
     if (Number.isNaN(rowIndex) || !state.rows[rowIndex]) return;
-    state.rows[rowIndex].worksOpen = !state.rows[rowIndex].worksOpen;
-    ensureRowLavorazioni(state.rows[rowIndex], false);
+
+    if (!state.workOperations.length) {
+      await loadWorkOperationsFromDatabase();
+    }
+
+    const row = state.rows[rowIndex];
+    const lineForWorks = row.line_day || state.setup.lineName || row.line_orig || "";
+    row.line_day = lineForWorks || row.line_day || state.setup.lineName || "";
+    row.worksOpen = !row.worksOpen;
+
+    if (row.worksOpen) {
+      const options = getWorkOptions(lineForWorks, row.postazione);
+      row.lavorazioni = options.length ? options : (Array.isArray(row.lavorazioni) ? row.lavorazioni : []);
+    }
+
     saveState();
     renderRowsView();
     return;
@@ -1499,31 +1529,31 @@ function handleRowTableInteraction(event) {
 
   const row = state.rows[rowIndex];
 
-  // Postazione: aggiorna senza rifare render immediato
+  // Postazione: aggiorna lavorazioni usando la linea della riga.
   if (field === "postazione") {
-  row.postazione = target.value;
+    row.postazione = target.value;
 
-  row.lavorazioni = getWorkOptions(
-    row.line_day || state.setup.lineName,
-    row.postazione
-  );
+    if (!state.workOperations.length) {
+      await loadWorkOperationsFromDatabase();
+    }
 
-  row.final_min = calculateFinalMinutes(
-    Number(row.work_min) || 0,
-    Number(state.setup.snackMin) || 0,
-    Number(state.setup.stopsMin) || 0,
-    Number(row.evento_min) || 0,
-    Number(row.assemblea_min) || 0,
-    Number(row.sciopero_min) || 0
-  );
+    const lineForWorks = row.line_day || state.setup.lineName || row.line_orig || "";
+    row.line_day = lineForWorks || row.line_day || state.setup.lineName || "";
+    row.lavorazioni = getWorkOptions(lineForWorks, row.postazione);
 
-  row.dirty = true;
-
-  saveState();
-  renderRowsView();
-
-  return;
-}
+    row.final_min = calculateFinalMinutes(
+      Number(row.work_min) || 0,
+      Number(state.setup.snackMin) || 0,
+      Number(state.setup.stopsMin) || 0,
+      Number(row.evento_min) || 0,
+      Number(row.assemblea_min) || 0,
+      Number(row.sciopero_min) || 0
+    );
+    row.dirty = true;
+    saveState();
+    renderRowsView();
+    return;
+  }
 
   if (field === "lavorazione") {
     const selectedWork = normalizeWorkItem({
@@ -3413,15 +3443,24 @@ function handleRowTableInteraction(event) {
         .order("postazione", { ascending: true })
         .order("sort_order", { ascending: true })
         .order("lavorazione", { ascending: true });
+
       if (response.error) {
         console.warn("Tabella work_operations non disponibile:", response.error.message);
         state.workOperations = [];
+        if (dom.rowsErrors) {
+          showBox(dom.rowsErrors, "Errore caricamento lavorazioni: " + response.error.message, "error");
+        }
         return;
       }
+
       state.workOperations = Array.isArray(response.data) ? response.data : [];
+      console.log("Lavorazioni caricate da work_operations:", state.workOperations.length);
     } catch (error) {
       console.warn("Errore caricamento work_operations:", error);
       state.workOperations = [];
+      if (dom.rowsErrors) {
+        showBox(dom.rowsErrors, "Errore caricamento lavorazioni: " + (error.message || error), "error");
+      }
     }
   }
 
@@ -3441,18 +3480,31 @@ function handleRowTableInteraction(event) {
     const work = normalizeWorkItem(item);
     return work.nome + "||" + work.carrello;
   }
+  function normalizeMatchText(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toUpperCase();
+  }
+
   function getWorkOptions(lineName, stationName) {
-    const wantedLine = normalizeText(lineName || "").trim();
-    const wantedStation = normalizeText(stationName || "").trim();
+    const wantedLine = normalizeMatchText(lineName || "");
+    const wantedStation = normalizeMatchText(stationName || "");
 
     const dbWorks = Array.isArray(state.workOperations)
       ? state.workOperations.filter((item) => {
-          const itemLine = normalizeText(item.linea || item.line_name || item.line || "").trim();
-          const itemStation = normalizeText(item.postazione || item.station_name || item.station || "").trim();
+          const itemLine = normalizeMatchText(item.linea || item.line_name || item.line || "");
+          const itemStation = normalizeMatchText(item.postazione || item.station_name || item.station || "");
           const active = item.is_active !== false;
           const sameLine = itemLine === wantedLine;
           const sameStation = itemStation === wantedStation;
-          const compatibleStation = Boolean(wantedStation && itemStation && (itemStation.includes(wantedStation) || wantedStation.includes(itemStation)));
+          const compatibleStation = Boolean(
+            wantedStation &&
+            itemStation &&
+            (itemStation.includes(wantedStation) || wantedStation.includes(itemStation))
+          );
           return active && sameLine && (sameStation || compatibleStation);
         })
       : [];
@@ -3735,8 +3787,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function show(el, msg, type){ if(!el) return; el.textContent=msg; el.className=`message ${type||"info"}`; el.classList.remove("hidden"); }
   function hide(el){ if(!el) return; el.textContent=""; el.className="message hidden"; }
   function isAdmin(){ return state.profile && state.profile.is_active !== false && (state.profile.can_manage_operators === true || norm(state.profile.role)==="ADMIN" || norm(state.profile.role)==="SUPERADMIN"); }
-  
-  
   async function init() {
     if (!client) return;
     setTimeout(async () => {
@@ -3749,10 +3799,6 @@ document.addEventListener("DOMContentLoaded", () => {
       bind();
     }, 500);
   }
-
-
-
-  
   async function loadProfile(){
     const session = await client.auth.getSession();
     state.user = session && session.data && session.data.session ? session.data.session.user : null;
