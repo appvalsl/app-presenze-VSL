@@ -107,9 +107,6 @@ const InserimentoPresenzeApp = (() => {
       snackMin: "0",
       stopsMin: "0",
       stopsNote: "",
-      globalEventoMin: "0",
-      globalAssembleaMin: "0",
-      globalScioperoMin: "0",
       dayDurationMinutes: 0,
       baseWorkMinutes: 0,
       baseNetMinutes: 0
@@ -189,9 +186,6 @@ const InserimentoPresenzeApp = (() => {
     dom.snackMin = document.getElementById("snackMin");
     dom.stopsMin = document.getElementById("stopsMin");
     dom.stopsNote = document.getElementById("stopsNote");
-    dom.globalEventoMin = document.getElementById("globalEventoMin");
-    dom.globalAssembleaMin = document.getElementById("globalAssembleaMin");
-    dom.globalScioperoMin = document.getElementById("globalScioperoMin");
 
     dom.setupSummaryBox = document.getElementById("setupSummaryBox");
 
@@ -710,27 +704,6 @@ function handleResetRows() {
         renderRowsSetupSummary();
         if (state.rows.length) {
           recalcAllRows();
-          renderRowsView();
-        }
-        saveState();
-      });
-    });
-
-    const globalExtraInputs = [
-      dom.globalEventoMin,
-      dom.globalAssembleaMin,
-      dom.globalScioperoMin
-    ];
-
-    globalExtraInputs.forEach((element) => {
-      if (!element) return;
-      element.addEventListener("input", () => {
-        readSetupFromForm();
-        syncQuickButtons();
-        applyGlobalExtrasToRows();
-        renderSetupSummary();
-        renderRowsSetupSummary();
-        if (state.rows.length) {
           renderRowsView();
         }
         saveState();
@@ -1365,16 +1338,13 @@ function handleResetRows() {
       ? operator.postazione
       : stationOptions[0] || "";
     const workMin = Number(state.setup.baseWorkMinutes) || 0;
-    const globalEventoMin = toNonNegativeInt(state.setup.globalEventoMin);
-    const globalAssembleaMin = toNonNegativeInt(state.setup.globalAssembleaMin);
-    const globalScioperoMin = toNonNegativeInt(state.setup.globalScioperoMin);
     const finalMin = calculateFinalMinutes(
       workMin,
       Number(state.setup.snackMin) || 0,
       Number(state.setup.stopsMin) || 0,
-      globalEventoMin,
-      globalAssembleaMin,
-      globalScioperoMin
+      0,
+      0,
+      0
     );
     return {
       operator_id: operator.id,
@@ -1390,9 +1360,9 @@ function handleResetRows() {
       postazione: initialStation,
       ore_standard: Number(operator.oreStandard) || 0,
       work_min: workMin,
-      evento_min: globalEventoMin,
-      assemblea_min: globalAssembleaMin,
-      sciopero_min: globalScioperoMin,
+      evento_min: 0,
+      assemblea_min: 0,
+      sciopero_min: 0,
       final_min: finalMin,
       lavorazioni: getWorkOptions(lineName, initialStation),
       worksOpen: false,
@@ -1808,9 +1778,6 @@ async function handleRowTableInteraction(event) {
     if (dom.snackMin) dom.snackMin.value = state.setup.snackMin || "0";
     if (dom.stopsMin) dom.stopsMin.value = state.setup.stopsMin || "0";
     if (dom.stopsNote) dom.stopsNote.value = state.setup.stopsNote || "";
-    if (dom.globalEventoMin) dom.globalEventoMin.value = state.setup.globalEventoMin || "0";
-    if (dom.globalAssembleaMin) dom.globalAssembleaMin.value = state.setup.globalAssembleaMin || "0";
-    if (dom.globalScioperoMin) dom.globalScioperoMin.value = state.setup.globalScioperoMin || "0";
 
     syncQuickButtons();
   }
@@ -1864,9 +1831,6 @@ async function handleRowTableInteraction(event) {
       ["Pausa snack", toNonNegativeInt(state.setup.snackMin) + " min"],
       ["Fermi", toNonNegativeInt(state.setup.stopsMin) + " min"],
       ["Nota fermi", state.setup.stopsNote || "-"],
-      ["Evento globale", toNonNegativeInt(state.setup.globalEventoMin) + " min"],
-      ["Assemblea globale", toNonNegativeInt(state.setup.globalAssembleaMin) + " min"],
-      ["Sciopero globale", toNonNegativeInt(state.setup.globalScioperoMin) + " min"],
       ["Durata giornata", formatMinutes(state.setup.dayDurationMinutes || 0)],
       ["Ore lavorate base", formatMinutes(state.setup.baseWorkMinutes || 0)],
       ["Tempo netto base", formatMinutes(state.setup.baseNetMinutes || 0)]
@@ -1897,9 +1861,6 @@ async function handleRowTableInteraction(event) {
       ["Ore lavorate base", formatMinutes(state.setup.baseWorkMinutes || 0)],
       ["Snack", toNonNegativeInt(state.setup.snackMin) + " min"],
       ["Fermi", toNonNegativeInt(state.setup.stopsMin) + " min"],
-      ["Evento globale", toNonNegativeInt(state.setup.globalEventoMin) + " min"],
-      ["Assemblea globale", toNonNegativeInt(state.setup.globalAssembleaMin) + " min"],
-      ["Sciopero globale", toNonNegativeInt(state.setup.globalScioperoMin) + " min"],
       ["Tempo netto base", formatMinutes(state.setup.baseNetMinutes || 0)]
     ];
 
@@ -3135,9 +3096,6 @@ async function handleRowTableInteraction(event) {
     );
 
     state.setup.stopsNote = dom.stopsNote ? dom.stopsNote.value : "";
-    state.setup.globalEventoMin = String(toNonNegativeInt(dom.globalEventoMin ? dom.globalEventoMin.value : 0));
-    state.setup.globalAssembleaMin = String(toNonNegativeInt(dom.globalAssembleaMin ? dom.globalAssembleaMin.value : 0));
-    state.setup.globalScioperoMin = String(toNonNegativeInt(dom.globalScioperoMin ? dom.globalScioperoMin.value : 0));
 
     const dayMinutes = minutesBetweenTimes(
       state.setup.startTime,
@@ -3263,30 +3221,6 @@ async function handleRowTableInteraction(event) {
     return { ok: true };
   }
 
-  function applyGlobalExtrasToRows() {
-    const globalEventoMin = toNonNegativeInt(state.setup.globalEventoMin);
-    const globalAssembleaMin = toNonNegativeInt(state.setup.globalAssembleaMin);
-    const globalScioperoMin = toNonNegativeInt(state.setup.globalScioperoMin);
-    state.rows = state.rows.map((row) => {
-      const nextRow = {
-        ...row,
-        evento_min: globalEventoMin,
-        assemblea_min: globalAssembleaMin,
-        sciopero_min: globalScioperoMin,
-        dirty: true
-      };
-      nextRow.final_min = calculateFinalMinutes(
-        Number(nextRow.work_min) || 0,
-        Number(state.setup.snackMin) || 0,
-        Number(state.setup.stopsMin) || 0,
-        Number(nextRow.evento_min) || 0,
-        Number(nextRow.assemblea_min) || 0,
-        Number(nextRow.sciopero_min) || 0
-      );
-      return nextRow;
-    });
-  }
-
   function recalcAllRows() {
     state.rows = state.rows.map((row) => {
       const workMin =
@@ -3344,9 +3278,6 @@ async function handleRowTableInteraction(event) {
       snackMin: "0",
       stopsMin: "0",
       stopsNote: "",
-      globalEventoMin: "0",
-      globalAssembleaMin: "0",
-      globalScioperoMin: "0",
       dayDurationMinutes: 0,
       baseWorkMinutes: 0,
       baseNetMinutes: 0
@@ -3392,10 +3323,7 @@ async function handleRowTableInteraction(event) {
       if (parsed.setup && typeof parsed.setup === "object") {
         state.setup = {
           ...state.setup,
-          ...parsed.setup,
-          globalEventoMin: parsed.setup.globalEventoMin === undefined ? "0" : String(parsed.setup.globalEventoMin),
-          globalAssembleaMin: parsed.setup.globalAssembleaMin === undefined ? "0" : String(parsed.setup.globalAssembleaMin),
-          globalScioperoMin: parsed.setup.globalScioperoMin === undefined ? "0" : String(parsed.setup.globalScioperoMin)
+          ...parsed.setup
         };
       }
 
@@ -3453,9 +3381,6 @@ async function handleRowTableInteraction(event) {
       snackMin: "0",
       stopsMin: "0",
       stopsNote: "",
-      globalEventoMin: "0",
-      globalAssembleaMin: "0",
-      globalScioperoMin: "0",
       dayDurationMinutes: 0,
       baseWorkMinutes: 0,
       baseNetMinutes: 0
