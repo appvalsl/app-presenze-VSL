@@ -114,3 +114,148 @@ input[type="hidden"]#plannedAbsenceStandardHours{
 @media(max-width:1200px){
   .planned-calendar-topline{grid-template-columns:1fr!important;}
 }
+
+
+/*----- */
+
+/* ==========================================
+   VSL LUXURY TUNE-UP
+   Non rompe il layout esistente
+   ========================================== */
+
+:root{
+  --vsl-shadow-soft:0 20px 50px rgba(15,23,42,.08);
+  --vsl-shadow-hover:0 26px 60px rgba(23,74,135,.14);
+}
+
+/* HEADER */
+.topbar{
+  box-shadow:0 8px 24px rgba(15,23,42,.05);
+}
+
+.brand-mark{
+  width:52px;
+  height:52px;
+  border-radius:18px;
+  box-shadow:0 12px 32px rgba(23,74,135,.20);
+  font-size:18px;
+}
+
+.app-title{
+  letter-spacing:-0.02em;
+}
+
+/* HOME */
+.home-hero{
+  border-radius:24px;
+  padding:30px;
+  border:1px solid #d6e4f4;
+  box-shadow:var(--vsl-shadow-soft);
+}
+
+.home-card,
+.planned-choice-card{
+  border-radius:24px;
+  box-shadow:var(--vsl-shadow-soft);
+}
+
+.home-card:hover,
+.planned-choice-card:hover{
+  box-shadow:var(--vsl-shadow-hover);
+}
+
+.home-card-title,
+.planned-choice-title{
+  letter-spacing:-0.03em;
+}
+
+/* CARD */
+.card{
+  box-shadow:
+    0 10px 25px rgba(15,23,42,.04),
+    0 18px 50px rgba(15,23,42,.05);
+}
+
+/* TABELLE */
+.table-wrap{
+  border-radius:18px;
+}
+
+.attendance-table th{
+  font-size:13px;
+  letter-spacing:.02em;
+}
+
+.attendance-table tr:hover{
+  background:#fafcff;
+}
+
+/* BOTTONI */
+.btn{
+  border-radius:14px;
+  font-weight:900;
+}
+
+.btn-primary{
+  box-shadow:
+    0 10px 24px rgba(23,74,135,.15);
+}
+
+.btn-primary:hover{
+  box-shadow:
+    0 14px 32px rgba(23,74,135,.22);
+}
+
+/* INPUT */
+input,
+select,
+textarea{
+  transition:
+    border-color .15s ease,
+    box-shadow .15s ease;
+}
+
+/* MODALI */
+.modal-card{
+  border-radius:24px;
+}
+
+.modal-header h2{
+  font-size:32px;
+  letter-spacing:-0.03em;
+}
+
+/* BADGE */
+.badge-active,
+.badge-inactive,
+.planned-owner-badge,
+.planned-reason-badge{
+  border-radius:999px;
+}
+
+/* MOBILE */
+@media(max-width:980px){
+
+  .home-hero{
+    padding:22px;
+  }
+
+  .home-card,
+  .planned-choice-card{
+    min-height:160px;
+  }
+
+  .btn{
+    min-height:58px;
+  }
+
+  .card{
+    border-radius:18px;
+  }
+
+  .modal-card{
+    border-radius:20px;
+  }
+}
+
+
