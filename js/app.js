@@ -2092,7 +2092,6 @@ async function handleRowTableInteraction(event) {
                       data-field="flessibilita_hours"
                       ${Boolean(row.is_duplicate) ? "readonly disabled" : ""}
                     >
-                    <div class="field-note">Se maggiore di 0 sostituisce le ore standard della giornata.</div>
                     ${Boolean(row.is_duplicate) ? '<div class="duplicate-note">Riga duplicata: ore standard bloccate a 0.</div>' : ''}
                   </div>
                 </div>
