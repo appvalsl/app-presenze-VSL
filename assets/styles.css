@@ -367,3 +367,37 @@ textarea{
   .planned-calendar-delete{width:100%!important;margin-left:0!important;}
   .planned-line-summary{grid-template-columns:1fr!important;}
 }
+
+
+/* ===== PATCH MODIFICA + ELIMINA CALENDARIO ASSENZE 2026-07-07 ===== */
+.planned-day-item-right{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  text-align:right!important;
+}
+.planned-calendar-edit,
+.planned-calendar-delete{
+  min-height:40px!important;
+  padding:8px 12px!important;
+  font-size:14px!important;
+  border-radius:12px!important;
+  margin-left:0!important;
+}
+.planned-calendar-edit{
+  background:#edf2f7!important;
+  color:#1f3b5d!important;
+  border:1px solid #d6e1ef!important;
+}
+@media(max-width:980px){
+  .planned-day-item-right{
+    justify-content:flex-start!important;
+    text-align:left!important;
+  }
+  .planned-calendar-edit,
+  .planned-calendar-delete{
+    width:100%!important;
+  }
+}
