@@ -25,7 +25,11 @@
       </div>
 
       <div class="topbar-right">
-        <button id="menuToggle" class="hamburger" type="button" aria-label="Apri menu">☰</button>
+        <button id="menuToggle" class="hamburger" type="button" aria-label="Apri menu" aria-controls="topbarMenu" aria-expanded="false">
+          <span class="hamburger-line" aria-hidden="true"></span>
+          <span class="hamburger-line" aria-hidden="true"></span>
+          <span class="hamburger-line" aria-hidden="true"></span>
+        </button>
         <div id="topbarMenu" class="topbar-menu">
           <button id="openHomeBtn" class="btn btn-secondary hidden" type="button">Home</button>
           <button id="openAttendanceBtn" class="btn btn-secondary hidden" type="button">Presenze</button>
@@ -35,6 +39,7 @@
           <span id="userBadge" class="user-badge hidden"></span>
           <button id="logoutBtn" class="btn btn-secondary hidden" type="button">Logout</button>
         </div>
+        <div id="mobileMenuBackdrop" class="mobile-menu-backdrop hidden" aria-hidden="true"></div>
       </div>
     </header>
 
