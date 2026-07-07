@@ -4953,7 +4953,7 @@ document.addEventListener("click",function(event){
         <p>Scegli l'area da gestire. Le sezioni sono separate per rendere l'amministrazione più chiara.</p>
       </div>
       <div class="admin-app-grid">
-        <button class="admin-app-choice admin-app-choice-primary" type="button" data-admin-area="operators">
+        <button class="admin-app-choice" type="button" data-admin-area="operators">
           <span class="admin-app-choice-icon">OP</span>
           <span class="admin-app-choice-title">Anagrafiche operatori</span>
           <span class="admin-app-choice-text">Modifica operatori, linea, postazione, ore standard e stato attivo.</span>
@@ -4977,7 +4977,7 @@ document.addEventListener("click",function(event){
     panel.querySelectorAll("button[data-admin-area]").forEach((button) => {
       button.addEventListener("click", () => selectAdminArea(button.dataset.adminArea));
     });
-    selectAdminArea("operators");
+    selectAdminArea("");
   }
   function operatorBlocks(){
     const view = $("operatorsAdminView");
@@ -4998,8 +4998,12 @@ document.addEventListener("click",function(event){
     dashboard.querySelectorAll("button[data-admin-area]").forEach((button) => button.classList.toggle("is-active", button.dataset.adminArea === area));
     const userPanel = $("adminUsersPanel");
     const workPanel = $("adminWorkPanel");
+    const legacyPanel = $("appTablesPanel");
+    const newOperatorBtn = $("newOperatorBtn");
     if (userPanel) userPanel.classList.toggle("hidden", area !== "users");
     if (workPanel) workPanel.classList.toggle("hidden", area !== "work");
+    if (legacyPanel) legacyPanel.classList.add("hidden");
+    if (newOperatorBtn) newOperatorBtn.classList.toggle("hidden", area !== "operators");
     operatorBlocks().forEach((block) => block.classList.toggle("hidden", area !== "operators"));
     if (area === "users") loadAdminUsers();
     if (area === "work") loadAdminWorkOperations();
@@ -5116,9 +5120,10 @@ document.addEventListener("click",function(event){
   function bindAdminDashboard(){
     const buttons = [$("openOperatorsBtn"), $("homeOpenOperatorsBtn")].filter(Boolean);
     buttons.forEach((button) => {
-      button.addEventListener("click", () => setTimeout(ensureAdminDashboard, 0), true);
+      button.addEventListener("click", () => setTimeout(() => { ensureAdminDashboard(); selectAdminArea(""); }, 0), true);
     });
     ensureAdminDashboard();
+    selectAdminArea("");
   }
 
   document.addEventListener("DOMContentLoaded", function(){
