@@ -5148,17 +5148,18 @@ document.addEventListener("click",function(event){
   const todayIso = () => new Date().toISOString().slice(0,10);
   const currentYearStart = () => new Date().getFullYear()+"-01-01";
 
-  const state = { sessions: [], rows: [], selectedSessionId: null, operators: [] };
+  const state = { sessions: [], rows: [], selectedSessionId: null };
 
   function show(el,msg,type){ if(!el) return; el.textContent=msg; el.className="message "+(type||"info"); el.classList.remove("hidden"); }
   function hide(el){ if(!el) return; el.textContent=""; el.className="message hidden"; }
   function switchView(viewId){ ["homeView","attendanceView","plannedAbsencesView","operatorsAdminView","attendanceAdminView"].forEach(id=>{ const el=$(id); if(el) el.classList.toggle("hidden", id!==viewId); }); }
-  function safeWorks(value){
+  function safeWorksArray(value){
     let arr=[];
     if(Array.isArray(value)) arr=value;
     else if(value){ try{ const p=JSON.parse(value); if(Array.isArray(p)) arr=p; }catch(_){} }
-    return arr.map(item=> typeof item==="object" ? (item.nome || item.name || item.lavorazione || "") : String(item||"")).filter(Boolean).join(", ");
+    return arr.map(item=> typeof item==="object" ? (item.nome || item.name || item.lavorazione || "") : String(item||"")).filter(Boolean);
   }
+  function safeWorks(value){ return safeWorksArray(value).join(", "); }
   function option(value,label){ return `<option value="${esc(value)}">${esc(label||value)}</option>`; }
 
   function ensureAttendanceControls(){
@@ -5166,10 +5167,7 @@ document.addEventListener("click",function(event){
     if(from){
       const label = document.querySelector('label[for="attendanceAdminDateFilter"]');
       if(label) label.textContent = "Dal";
-      if(!from.dataset.periodReady){
-        from.dataset.periodReady="1";
-        from.placeholder="Dal";
-      }
+      if(!from.dataset.periodReady){ from.dataset.periodReady="1"; from.placeholder="Dal"; }
       const parent = from.closest(".field");
       if(parent && !$("attendanceAdminToDateFilter")){
         const toField=document.createElement("div");
@@ -5185,8 +5183,10 @@ document.addEventListener("click",function(event){
       btn.id="exportMegaAttendanceBtn";
       btn.type="button";
       btn.className="btn btn-primary";
-      btn.textContent="Esporta mega database Excel";
+      btn.textContent="Esporta DB presenze Excel";
       actions.appendChild(btn);
+    } else if($("exportMegaAttendanceBtn")) {
+      $("exportMegaAttendanceBtn").textContent="Esporta DB presenze Excel";
     }
   }
 
@@ -5299,9 +5299,7 @@ document.addEventListener("click",function(event){
   async function loadOperatorsMap(){
     const res=await client.from("operators").select("id,cognome,nome,idoperatore,id_operatore,lineaproduzione,lineaProduzione,linea_produzione,linea");
     const map=new Map();
-    if(!res.error && Array.isArray(res.data)){
-      res.data.forEach(op=>map.set(operatorKey(op), op));
-    }
+    if(!res.error && Array.isArray(res.data)) res.data.forEach(op=>map.set(operatorKey(op), op));
     return map;
   }
 
@@ -5314,13 +5312,17 @@ document.addEventListener("click",function(event){
   const u16=n=>[n&255,(n>>>8)&255]; const u32=n=>[n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]; const bytes=s=>new TextEncoder().encode(s);
   function concat(parts){ const total=parts.reduce((s,p)=>s+p.length,0); const out=new Uint8Array(total); let pos=0; parts.forEach(p=>{out.set(p,pos); pos+=p.length;}); return out; }
   function makeZip(files){ const locals=[], centrals=[]; let offset=0; files.forEach(file=>{ const nameBytes=bytes(file.name), dataBytes=bytes(file.content), crc=crc32(dataBytes); const local=new Uint8Array([0x50,0x4B,0x03,0x04,...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(dataBytes.length),...u32(dataBytes.length),...u16(nameBytes.length),...u16(0)]); locals.push(local,nameBytes,dataBytes); const central=new Uint8Array([0x50,0x4B,0x01,0x02,...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(dataBytes.length),...u32(dataBytes.length),...u16(nameBytes.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(offset)]); centrals.push(central,nameBytes); offset += local.length + nameBytes.length + dataBytes.length; }); const centralBytes=concat(centrals); const end=new Uint8Array([0x50,0x4B,0x05,0x06,...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(centralBytes.length),...u32(offset),...u16(0)]); return concat([...locals,centralBytes,end]); }
-  function makeXlsx(rows){ const files=[
-    {name:"[Content_Types].xml",content:`<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`},
-    {name:"_rels/.rels",content:`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
-    {name:"xl/workbook.xml",content:`<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Mega database presenze" sheetId="1" r:id="rId1"/></sheets></workbook>`},
-    {name:"xl/_rels/workbook.xml.rels",content:`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`},
-    {name:"xl/worksheets/sheet1.xml",content:sheetXml(rows)}
-  ]; return new Blob([makeZip(files)],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}); }
+  function makeXlsx(sheets){
+    const defs=sheets.map((s,i)=>({name:s.name,rows:s.rows,id:i+1}));
+    const files=[
+      {name:"[Content_Types].xml",content:`<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${defs.map(d=>`<Override PartName="/xl/worksheets/sheet${d.id}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`},
+      {name:"_rels/.rels",content:`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+      {name:"xl/workbook.xml",content:`<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${defs.map(d=>`<sheet name="${xlsxEsc(d.name)}" sheetId="${d.id}" r:id="rId${d.id}"/>`).join("")}</sheets></workbook>`},
+      {name:"xl/_rels/workbook.xml.rels",content:`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${defs.map(d=>`<Relationship Id="rId${d.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${d.id}.xml"/>`).join("")}</Relationships>`}
+    ];
+    defs.forEach(d=>files.push({name:`xl/worksheets/sheet${d.id}.xml`,content:sheetXml(d.rows)}));
+    return new Blob([makeZip(files)],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  }
 
   async function exportMegaDatabase(){
     if(!client) return;
@@ -5347,9 +5349,8 @@ document.addEventListener("click",function(event){
     }
     const operatorsMap=await loadOperatorsMap();
     const search=f.search;
-    const rows=[[
-      "DATA PRESENZA","NOME","COGNOME","LINEA EFFETTIVA","LINEA STD","ORE STD","ORE DI LAVORO","MINUTI FINALI","LAVORAZIONI","POSTAZIONE"
-    ]];
+    const dbRows=[["DATA PRESENZA","NOME","COGNOME","LINEA STD","LINEA EFFETTIVA","POSTAZIONE","ORE STD","ORE DI LAVORO","MINUTI FINALI","LAVORAZIONI"]];
+    const splitRows=[["DATA","NOME","COGNOME","POSTAZIONE","LAVORAZIONE"]];
     allRows.filter(row=>rowMatchesSearch(row,search)).sort((a,b)=>{
       const sa=sessionMap.get(String(a.attendance_session_id))||{};
       const sb=sessionMap.get(String(b.attendance_session_id))||{};
@@ -5358,27 +5359,33 @@ document.addEventListener("click",function(event){
       const session=sessionMap.get(String(row.attendance_session_id))||{};
       const op=operatorsMap.get(operatorsKey(row));
       const lineStd = (op && (op.lineaproduzione || op.lineaProduzione || op.linea_produzione || op.linea)) || row.line_orig || "";
-      rows.push([
+      const workList=safeWorksArray(row.lavorazioni);
+      dbRows.push([
         session.work_date || "",
         row.nome || "",
         row.cognome || "",
-        row.line_day || session.line_name || "",
         lineStd,
+        row.line_day || session.line_name || "",
+        row.postazione || "",
         num(row.ore_standard || row.base_ore_standard,0),
         Number(minToHours(row.work_min)),
         Number(row.final_min)||0,
-        safeWorks(row.lavorazioni),
-        row.postazione || ""
+        workList.join(", ")
       ]);
+      if(workList.length){
+        workList.forEach(work=>splitRows.push([session.work_date||"",row.nome||"",row.cognome||"",row.postazione||"",work]));
+      } else {
+        splitRows.push([session.work_date||"",row.nome||"",row.cognome||"",row.postazione||"",""]);
+      }
     });
-    if(rows.length===1){ show(msg,"Nessuna riga da esportare con i filtri attivi.","info"); return; }
-    const blob=makeXlsx(rows);
+    if(dbRows.length===1){ show(msg,"Nessuna riga da esportare con i filtri attivi.","info"); return; }
+    const blob=makeXlsx([{name:"DB PRESENZE",rows:dbRows},{name:"LAVORAZIONI SPLIT",rows:splitRows}]);
     const start=f.from || (sessions[0] && sessions[0].work_date) || currentYearStart();
     const end=f.to || (sessions[sessions.length-1] && sessions[sessions.length-1].work_date) || todayIso();
-    const filename=`mega_database_presenze_${start}_${end}.xlsx`;
+    const filename=`db_presenze_${start}_${end}.xlsx`;
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
-    show(msg,`Export Excel generato correttamente: ${rows.length-1} righe esportate.`,"success");
+    show(msg,`Export Excel generato correttamente: ${dbRows.length-1} righe DB PRESENZE e ${splitRows.length-1} righe LAVORAZIONI SPLIT.`,"success");
   }
 
   function bindMegaAttendance(){
