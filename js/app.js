@@ -5421,3 +5421,70 @@ document.addEventListener("click",function(event){
     if (subtitle) subtitle.textContent = "People • Production • Planning";
   });
 })();
+
+
+/* ===== MOBILE HAMBURGER MENU RESPONSIVE 2026-07-07 ===== */
+(function(){
+  "use strict";
+  function $(id){ return document.getElementById(id); }
+  function visibleMenuButtons(menu){
+    return Array.from(menu ? menu.querySelectorAll("button, a, [tabindex]") : [])
+      .filter(function(el){ return !el.classList.contains("hidden") && !el.disabled; });
+  }
+  function setOpen(open){
+    var menu = $("topbarMenu");
+    var toggle = $("menuToggle");
+    var backdrop = $("mobileMenuBackdrop");
+    var body = document.body;
+    if(!menu || !toggle) return;
+    menu.classList.toggle("is-open", open);
+    toggle.classList.toggle("is-open", open);
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    toggle.setAttribute("aria-label", open ? "Chiudi menu" : "Apri menu");
+    if(backdrop) backdrop.classList.toggle("hidden", !open);
+    if(body) body.classList.toggle("mobile-menu-open", open);
+    if(open){
+      var first = visibleMenuButtons(menu)[0];
+      if(first) setTimeout(function(){ first.focus({preventScroll:true}); }, 0);
+    } else {
+      toggle.focus({preventScroll:true});
+    }
+  }
+  function closeMenu(){ setOpen(false); }
+  function toggleMenu(){
+    var menu = $("topbarMenu");
+    setOpen(!(menu && menu.classList.contains("is-open")));
+  }
+  function bind(){
+    var toggle = $("menuToggle");
+    var menu = $("topbarMenu");
+    var backdrop = $("mobileMenuBackdrop");
+    if(!toggle || !menu || toggle.dataset.mobileMenuBound === "1") return;
+    toggle.dataset.mobileMenuBound = "1";
+    toggle.addEventListener("click", function(event){
+      event.preventDefault();
+      event.stopPropagation();
+      toggleMenu();
+    });
+    if(backdrop){
+      backdrop.addEventListener("click", function(event){
+        event.preventDefault();
+        closeMenu();
+      });
+    }
+    menu.addEventListener("click", function(event){
+      var item = event.target.closest("button, a");
+      if(item && window.matchMedia("(max-width: 860px)").matches){
+        closeMenu();
+      }
+    });
+    document.addEventListener("keydown", function(event){
+      if(event.key === "Escape") closeMenu();
+    });
+    window.addEventListener("resize", function(){
+      if(!window.matchMedia("(max-width: 860px)").matches) closeMenu();
+    });
+  }
+  document.addEventListener("DOMContentLoaded", bind);
+  if(document.readyState !== "loading") bind();
+})();
