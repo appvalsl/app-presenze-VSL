@@ -493,3 +493,24 @@ textarea{
 #plannedAbsenceSearch{
   scroll-margin-top:140px;
 }
+
+
+/* ===== PATCH ADMIN SOLO PULSANTI INIZIALI 2026-07-07 ===== */
+#appTablesPanel{
+  display:none!important;
+}
+.admin-app-choice-primary:not(.is-active){
+  background:#fff!important;
+  color:#10233d!important;
+}
+.admin-app-choice-primary:not(.is-active) .admin-app-choice-icon{
+  background:#dbeafe!important;
+  color:#174a87!important;
+}
+.admin-app-choice-primary:not(.is-active) .admin-app-choice-text{
+  color:#5b6f8a!important;
+}
+#adminAppDashboard + .card.hidden,
+#adminAppDashboard ~ .card.hidden{
+  display:none!important;
+}
