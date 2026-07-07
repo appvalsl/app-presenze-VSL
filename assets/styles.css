@@ -526,3 +526,13 @@ textarea{
 @media(max-width:980px){
   #exportMegaAttendanceBtn{width:100%;margin-left:0;}
 }
+
+
+/* ===== PATCH BRAND VSL OPERATIONS WORKFORCE 2026-07-07 ===== */
+.brand-mark{
+  letter-spacing:-0.04em;
+  font-size:14px!important;
+}
+@media(max-width:980px){
+  .brand-mark{font-size:15px!important;}
+}
