@@ -514,3 +514,15 @@ textarea{
 #adminAppDashboard ~ .card.hidden{
   display:none!important;
 }
+
+
+/* ===== PATCH EXPORT MEGA DATABASE PRESENZE 2026-07-07 ===== */
+#exportMegaAttendanceBtn{
+  margin-left:8px;
+}
+#attendanceAdminToDateFilter{
+  min-height:58px;
+}
+@media(max-width:980px){
+  #exportMegaAttendanceBtn{width:100%;margin-left:0;}
+}
