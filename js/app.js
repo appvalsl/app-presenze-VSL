@@ -180,6 +180,8 @@ const InserimentoPresenzeApp = (() => {
     dom.step1 = document.getElementById("step1");
     dom.step2 = document.getElementById("step2");
     dom.step3 = document.getElementById("step3");
+    dom.step4 = document.getElementById("step4");
+    dom.step5 = document.getElementById("step5");
 
     dom.lineSelect = document.getElementById("lineSelect");
     dom.workDate = document.getElementById("workDate");
@@ -476,7 +478,7 @@ function handleResetRows() {
     if (dom.backToSetupBtn) {
       dom.backToSetupBtn.addEventListener("click", () => {
         state.activeView = "setup";
-        state.currentStep = 3;
+        state.currentStep = 5;
         hideBox(dom.rowsErrors);
         hideBox(dom.globalMessage);
         saveState();
@@ -1093,7 +1095,7 @@ function handleResetRows() {
       return;
     }
 
-    if (state.currentStep < 3) {
+    if (state.currentStep < 5) {
       state.currentStep += 1;
       saveState();
       renderAll();
@@ -1122,6 +1124,15 @@ function handleResetRows() {
       state.currentStep = 2;
       renderAll();
       showBox(dom.wizardErrors, step2Validation.message, "error");
+      return;
+    }
+
+    const step3Validation = validateStep(3);
+
+    if (!step3Validation.ok) {
+      state.currentStep = 3;
+      renderAll();
+      showBox(dom.wizardErrors, step3Validation.message, "error");
       return;
     }
 
@@ -1816,7 +1827,7 @@ async function handleRowTableInteraction(event) {
   }
 
   function renderWizard() {
-    const steps = [dom.step1, dom.step2, dom.step3];
+    const steps = [dom.step1, dom.step2, dom.step3, dom.step4, dom.step5];
 
     steps.forEach((stepElement, index) => {
       if (!stepElement) return;
@@ -1826,11 +1837,11 @@ async function handleRowTableInteraction(event) {
     });
 
     if (dom.stepBadge) {
-      dom.stepBadge.textContent = "Step " + state.currentStep + " di 3";
+      dom.stepBadge.textContent = "Step " + state.currentStep + " di 5";
     }
 
     if (dom.progressFill) {
-      dom.progressFill.style.width = (state.currentStep / 3) * 100 + "%";
+      dom.progressFill.style.width = (state.currentStep / 5) * 100 + "%";
     }
 
     if (dom.wizardBackBtn) {
@@ -1838,7 +1849,7 @@ async function handleRowTableInteraction(event) {
     }
 
     if (dom.wizardNextBtn) {
-      dom.wizardNextBtn.classList.toggle("hidden", state.currentStep === 3);
+      dom.wizardNextBtn.classList.toggle("hidden", state.currentStep === 5);
     }
 
     if (dom.setupView) {
@@ -3167,7 +3178,6 @@ async function handleRowTableInteraction(event) {
           message: "Seleziona una linea di produzione."
         };
       }
-
       return { ok: true };
     }
 
@@ -3178,45 +3188,57 @@ async function handleRowTableInteraction(event) {
           message: "Data, orario di inizio e orario di fine sono obbligatori."
         };
       }
-
-      const lunchMin = toNonNegativeInt(state.setup.lunchMin);
-      const snackMin = toNonNegativeInt(state.setup.snackMin);
-      const stopsMin = toNonNegativeInt(state.setup.stopsMin);
-
       const dayMinutes = minutesBetweenTimes(
         state.setup.startTime,
         state.setup.endTime
       );
-
       if (!Number.isFinite(dayMinutes) || dayMinutes <= 0) {
         return {
           ok: false,
           message: "L'orario di fine deve essere successivo all'orario di inizio."
         };
       }
+      state.setup.dayDurationMinutes = dayMinutes;
+      state.setup.baseWorkMinutes = Math.max(dayMinutes - toNonNegativeInt(state.setup.lunchMin), 0);
+      state.setup.baseNetMinutes = Math.max(
+        state.setup.baseWorkMinutes - toNonNegativeInt(state.setup.snackMin) - toNonNegativeInt(state.setup.stopsMin),
+        0
+      );
+      return { ok: true };
+    }
 
+    if (step === 3) {
+      const previous = validateStep(2);
+      if (!previous.ok) return previous;
+      const lunchMin = toNonNegativeInt(state.setup.lunchMin);
+      const snackMin = toNonNegativeInt(state.setup.snackMin);
+      const stopsMin = toNonNegativeInt(state.setup.stopsMin);
+      const dayMinutes = minutesBetweenTimes(
+        state.setup.startTime,
+        state.setup.endTime
+      );
       const baseWorkMinutes = dayMinutes - lunchMin;
       const baseNetMinutes = baseWorkMinutes - snackMin - stopsMin;
-
       if (baseWorkMinutes < 0) {
         return {
           ok: false,
           message: "La pausa pranzo non può rendere negative le ore lavorabili."
         };
       }
-
       if (baseNetMinutes < 0) {
         return {
           ok: false,
           message: "Il tempo produttivo netto non può essere negativo."
         };
       }
-
       state.setup.dayDurationMinutes = dayMinutes;
       state.setup.baseWorkMinutes = baseWorkMinutes;
       state.setup.baseNetMinutes = baseNetMinutes;
-
       return { ok: true };
+    }
+
+    if (step === 4) {
+      return validateStep(3);
     }
 
     return { ok: true };
@@ -3793,7 +3815,7 @@ async function handleRowTableInteraction(event) {
     const number = Number(step);
 
     if (Number.isNaN(number) || number < 1) return 1;
-    if (number > 3) return 3;
+    if (number > 5) return 5;
 
     return number;
   }
