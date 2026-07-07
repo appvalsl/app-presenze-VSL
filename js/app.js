@@ -5134,3 +5134,269 @@ document.addEventListener("click",function(event){
     }, 1200);
   });
 })();
+
+
+/* ===== PATCH EXPORT MEGA DATABASE PRESENZE 2026-07-07 ===== */
+(function(){
+  "use strict";
+  const client = window.AppSupabase && window.AppSupabase.getClient ? window.AppSupabase.getClient() : null;
+  const $ = (id) => document.getElementById(id);
+  const esc = (value) => String(value ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+  const norm = (value) => String(value || "").trim().toUpperCase();
+  const num = (value, fallback=0) => { const n=Number(String(value ?? "").replace(",",".")); return Number.isFinite(n)?n:fallback; };
+  const minToHours = (minutes) => ((Number(minutes) || 0) / 60).toFixed(2);
+  const todayIso = () => new Date().toISOString().slice(0,10);
+  const currentYearStart = () => new Date().getFullYear()+"-01-01";
+
+  const state = { sessions: [], rows: [], selectedSessionId: null, operators: [] };
+
+  function show(el,msg,type){ if(!el) return; el.textContent=msg; el.className="message "+(type||"info"); el.classList.remove("hidden"); }
+  function hide(el){ if(!el) return; el.textContent=""; el.className="message hidden"; }
+  function switchView(viewId){ ["homeView","attendanceView","plannedAbsencesView","operatorsAdminView","attendanceAdminView"].forEach(id=>{ const el=$(id); if(el) el.classList.toggle("hidden", id!==viewId); }); }
+  function safeWorks(value){
+    let arr=[];
+    if(Array.isArray(value)) arr=value;
+    else if(value){ try{ const p=JSON.parse(value); if(Array.isArray(p)) arr=p; }catch(_){} }
+    return arr.map(item=> typeof item==="object" ? (item.nome || item.name || item.lavorazione || "") : String(item||"")).filter(Boolean).join(", ");
+  }
+  function option(value,label){ return `<option value="${esc(value)}">${esc(label||value)}</option>`; }
+
+  function ensureAttendanceControls(){
+    const from = $("attendanceAdminDateFilter");
+    if(from){
+      const label = document.querySelector('label[for="attendanceAdminDateFilter"]');
+      if(label) label.textContent = "Dal";
+      if(!from.dataset.periodReady){
+        from.dataset.periodReady="1";
+        from.placeholder="Dal";
+      }
+      const parent = from.closest(".field");
+      if(parent && !$("attendanceAdminToDateFilter")){
+        const toField=document.createElement("div");
+        toField.className="field";
+        toField.innerHTML=`<label for="attendanceAdminToDateFilter">Al</label><input id="attendanceAdminToDateFilter" type="date">`;
+        parent.insertAdjacentElement("afterend", toField);
+      }
+    }
+    const refresh = $("refreshAttendanceAdminBtn");
+    const actions = refresh ? refresh.parentElement : null;
+    if(actions && !$("exportMegaAttendanceBtn")){
+      const btn=document.createElement("button");
+      btn.id="exportMegaAttendanceBtn";
+      btn.type="button";
+      btn.className="btn btn-primary";
+      btn.textContent="Esporta mega database Excel";
+      actions.appendChild(btn);
+    }
+  }
+
+  function getFilters(){
+    return {
+      from: $("attendanceAdminDateFilter")?.value || "",
+      to: $("attendanceAdminToDateFilter")?.value || "",
+      line: $("attendanceAdminLineFilter")?.value || "",
+      search: norm($("attendanceAdminSearchInput")?.value || "")
+    };
+  }
+
+  async function openMegaAttendance(){
+    if(!client) return;
+    ensureAttendanceControls();
+    switchView("attendanceAdminView");
+    state.selectedSessionId=null;
+    state.rows=[];
+    await loadMegaSessions();
+  }
+
+  async function loadMegaSessions(){
+    if(!client) return;
+    ensureAttendanceControls();
+    const msg=$("attendanceAdminMessage");
+    hide(msg);
+    const f=getFilters();
+    let query=client.from("attendance_sessions").select("*").order("work_date",{ascending:false}).order("line_name",{ascending:true});
+    if(f.from) query=query.gte("work_date", f.from);
+    if(f.to) query=query.lte("work_date", f.to);
+    if(f.line) query=query.eq("line_name", f.line);
+    const res=await query;
+    if(res.error){ show(msg,res.error.message||"Errore caricamento riepilogo presenze.","error"); return; }
+    state.sessions=Array.isArray(res.data)?res.data:[];
+    renderLineFilter();
+    renderSessions();
+    renderRows();
+  }
+
+  function renderLineFilter(){
+    const sel=$("attendanceAdminLineFilter");
+    if(!sel) return;
+    const cur=sel.value||"";
+    const lines=[...new Set(state.sessions.map(s=>s.line_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"it"));
+    sel.innerHTML=option("","Tutte le linee")+lines.map(l=>option(l,l)).join("");
+    sel.value=lines.includes(cur)?cur:"";
+  }
+
+  function renderSessions(){
+    const body=$("attendanceAdminSessionsBody");
+    if(!body) return;
+    if(!state.sessions.length){ body.innerHTML='<tr><td colspan="5"><div class="muted">Nessuna giornata salvata trovata.</div></td></tr>'; return; }
+    body.innerHTML=state.sessions.map(s=>`<tr class="${String(s.id)===String(state.selectedSessionId)?"is-selected":""}"><td data-label="Data">${esc(s.work_date||"-")}</td><td data-label="Linea">${esc(s.line_name||"-")}</td><td data-label="Inizio">${esc(s.start_time||"-")}</td><td data-label="Fine">${esc(s.end_time||"-")}</td><td data-label="Azioni"><button class="btn btn-secondary btn-small" type="button" data-mega-session="${esc(s.id)}">Apri dettaglio</button></td></tr>`).join("");
+    body.querySelectorAll("button[data-mega-session]").forEach(btn=>btn.addEventListener("click",()=>loadMegaRows(btn.dataset.megaSession)));
+  }
+
+  async function loadMegaRows(sessionId){
+    state.selectedSessionId=sessionId;
+    const msg=$("attendanceAdminMessage");
+    hide(msg);
+    const res=await client.from("attendance_rows").select("*").eq("attendance_session_id",sessionId).order("sort_order",{ascending:true});
+    if(res.error){ show(msg,res.error.message||"Errore dettaglio presenze.","error"); return; }
+    state.rows=Array.isArray(res.data)?res.data:[];
+    renderSessions();
+    renderRows();
+  }
+
+  function rowMatchesSearch(row,search){
+    if(!search) return true;
+    return norm([row.nome,row.cognome,row.line_day,row.line_orig,row.postazione,safeWorks(row.lavorazioni)].join(" ")).includes(search);
+  }
+
+  function renderRows(){
+    const body=$("attendanceAdminRowsBody");
+    if(!body) return;
+    const search=getFilters().search;
+    const rows=state.rows.filter(r=>rowMatchesSearch(r,search));
+    if(!state.selectedSessionId){ body.innerHTML='<tr><td colspan="8"><div class="muted">Apri una giornata per vedere il dettaglio.</div></td></tr>'; return; }
+    if(!rows.length){ body.innerHTML='<tr><td colspan="8"><div class="muted">Nessuna riga trovata.</div></td></tr>'; return; }
+    body.innerHTML=rows.map(r=>`<tr><td data-label="Operatore"><strong>${esc([r.cognome,r.nome].filter(Boolean).join(" ")||"Operatore")}</strong></td><td data-label="Linea">${esc(r.line_day||"-")}</td><td data-label="Postazione">${esc(r.postazione||"-")}</td><td data-label="Lavorazioni">${esc(safeWorks(r.lavorazioni)||"-")}</td><td data-label="Ore">${esc(minToHours(r.work_min))}</td><td data-label="Finali">${esc(Number(r.final_min)||0)} min</td><td data-label="Extra">${esc((Number(r.evento_min)||0)+"/"+(Number(r.assemblea_min)||0)+"/"+(Number(r.sciopero_min)||0)+" min")}</td><td data-label="Azioni"><button class="btn btn-secondary btn-small" type="button" data-mega-edit-row="${esc(r.id)}">Modifica ore</button></td></tr>`).join("");
+    body.querySelectorAll("button[data-mega-edit-row]").forEach(btn=>btn.addEventListener("click",()=>quickEditRow(btn.dataset.megaEditRow)));
+  }
+
+  async function quickEditRow(rowId){
+    const row=state.rows.find(r=>String(r.id)===String(rowId));
+    if(!row) return;
+    const value=prompt("Ore lavorate",minToHours(row.work_min));
+    if(value===null) return;
+    const hours=num(value,NaN);
+    if(!Number.isFinite(hours) || hours<0){ show($("attendanceAdminMessage"),"Inserisci un numero ore valido.","error"); return; }
+    const workMin=Math.round(hours*60);
+    const session=state.sessions.find(s=>String(s.id)===String(row.attendance_session_id));
+    const finalMin=Math.max(0,workMin-(Number(session?.snack_min)||0)-(Number(session?.stops_min)||0)-(Number(row.evento_min)||0)-(Number(row.assemblea_min)||0)-(Number(row.sciopero_min)||0));
+    const res=await client.from("attendance_rows").update({work_min:workMin,final_min:finalMin,dirty:true}).eq("id",rowId).select();
+    if(res.error){ show($("attendanceAdminMessage"),res.error.message||"Errore modifica presenza.","error"); return; }
+    await loadMegaRows(row.attendance_session_id);
+  }
+
+  function operatorsKey(row){
+    if(row.operator_id!==undefined && row.operator_id!==null && row.operator_id!=="") return "ID:"+String(row.operator_id);
+    if(row.id_operatore) return "CODE:"+norm(row.id_operatore);
+    return "NAME:"+norm([row.cognome,row.nome].filter(Boolean).join(" "));
+  }
+  function operatorKey(op){
+    if(op.id!==undefined && op.id!==null && op.id!=="") return "ID:"+String(op.id);
+    const code = op.idoperatore || op.id_operatore || op.idOperatore;
+    if(code) return "CODE:"+norm(code);
+    return "NAME:"+norm([op.cognome,op.nome].filter(Boolean).join(" "));
+  }
+  async function loadOperatorsMap(){
+    const res=await client.from("operators").select("id,cognome,nome,idoperatore,id_operatore,lineaproduzione,lineaProduzione,linea_produzione,linea");
+    const map=new Map();
+    if(!res.error && Array.isArray(res.data)){
+      res.data.forEach(op=>map.set(operatorKey(op), op));
+    }
+    return map;
+  }
+
+  function xlsxEsc(value){ return String(value == null ? "" : value).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&apos;"); }
+  function colName(index){ let n=index+1,out=""; while(n>0){ const r=(n-1)%26; out=String.fromCharCode(65+r)+out; n=Math.floor((n-1)/26); } return out; }
+  function cellXml(value,row,col){ const ref=colName(col)+row; if(typeof value==="number" && Number.isFinite(value)) return `<c r="${ref}"><v>${value}</v></c>`; return `<c r="${ref}" t="inlineStr"><is><t>${xlsxEsc(value)}</t></is></c>`; }
+  function sheetXml(rows){ const body=rows.map((row,i)=>`<row r="${i+1}">${row.map((v,c)=>cellXml(v,i+1,c)).join("")}</row>`).join(""); return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${body}</sheetData></worksheet>`; }
+  const crcTable=(()=>{ const t=new Uint32Array(256); for(let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); t[i]=c>>>0; } return t; })();
+  function crc32(bytes){ let crc=0xFFFFFFFF; for(let i=0;i<bytes.length;i++) crc=(crc>>>8)^crcTable[(crc^bytes[i])&255]; return (crc^0xFFFFFFFF)>>>0; }
+  const u16=n=>[n&255,(n>>>8)&255]; const u32=n=>[n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]; const bytes=s=>new TextEncoder().encode(s);
+  function concat(parts){ const total=parts.reduce((s,p)=>s+p.length,0); const out=new Uint8Array(total); let pos=0; parts.forEach(p=>{out.set(p,pos); pos+=p.length;}); return out; }
+  function makeZip(files){ const locals=[], centrals=[]; let offset=0; files.forEach(file=>{ const nameBytes=bytes(file.name), dataBytes=bytes(file.content), crc=crc32(dataBytes); const local=new Uint8Array([0x50,0x4B,0x03,0x04,...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(dataBytes.length),...u32(dataBytes.length),...u16(nameBytes.length),...u16(0)]); locals.push(local,nameBytes,dataBytes); const central=new Uint8Array([0x50,0x4B,0x01,0x02,...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(dataBytes.length),...u32(dataBytes.length),...u16(nameBytes.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(offset)]); centrals.push(central,nameBytes); offset += local.length + nameBytes.length + dataBytes.length; }); const centralBytes=concat(centrals); const end=new Uint8Array([0x50,0x4B,0x05,0x06,...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(centralBytes.length),...u32(offset),...u16(0)]); return concat([...locals,centralBytes,end]); }
+  function makeXlsx(rows){ const files=[
+    {name:"[Content_Types].xml",content:`<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`},
+    {name:"_rels/.rels",content:`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+    {name:"xl/workbook.xml",content:`<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Mega database presenze" sheetId="1" r:id="rId1"/></sheets></workbook>`},
+    {name:"xl/_rels/workbook.xml.rels",content:`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`},
+    {name:"xl/worksheets/sheet1.xml",content:sheetXml(rows)}
+  ]; return new Blob([makeZip(files)],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}); }
+
+  async function exportMegaDatabase(){
+    if(!client) return;
+    ensureAttendanceControls();
+    const msg=$("attendanceAdminMessage");
+    hide(msg);
+    const f=getFilters();
+    let sessionQuery=client.from("attendance_sessions").select("*").order("work_date",{ascending:true}).order("line_name",{ascending:true});
+    if(f.from) sessionQuery=sessionQuery.gte("work_date",f.from);
+    if(f.to) sessionQuery=sessionQuery.lte("work_date",f.to);
+    if(f.line) sessionQuery=sessionQuery.eq("line_name",f.line);
+    const sessionsRes=await sessionQuery;
+    if(sessionsRes.error){ show(msg,sessionsRes.error.message||"Errore export sessioni.","error"); return; }
+    const sessions=Array.isArray(sessionsRes.data)?sessionsRes.data:[];
+    if(!sessions.length){ show(msg,"Nessuna presenza da esportare con i filtri attivi.","info"); return; }
+    const sessionIds=sessions.map(s=>s.id).filter(Boolean);
+    const sessionMap=new Map(sessions.map(s=>[String(s.id),s]));
+    let allRows=[];
+    for(let i=0;i<sessionIds.length;i+=100){
+      const chunk=sessionIds.slice(i,i+100);
+      const rowsRes=await client.from("attendance_rows").select("*").in("attendance_session_id",chunk).order("sort_order",{ascending:true});
+      if(rowsRes.error){ show(msg,rowsRes.error.message||"Errore export righe.","error"); return; }
+      allRows=allRows.concat(Array.isArray(rowsRes.data)?rowsRes.data:[]);
+    }
+    const operatorsMap=await loadOperatorsMap();
+    const search=f.search;
+    const rows=[[
+      "DATA PRESENZA","NOME","COGNOME","LINEA EFFETTIVA","LINEA STD","ORE STD","ORE DI LAVORO","MINUTI FINALI","LAVORAZIONI","POSTAZIONE"
+    ]];
+    allRows.filter(row=>rowMatchesSearch(row,search)).sort((a,b)=>{
+      const sa=sessionMap.get(String(a.attendance_session_id))||{};
+      const sb=sessionMap.get(String(b.attendance_session_id))||{};
+      return String(sa.work_date||"").localeCompare(String(sb.work_date||"")) || String(a.cognome||"").localeCompare(String(b.cognome||""),"it") || String(a.nome||"").localeCompare(String(b.nome||""),"it");
+    }).forEach(row=>{
+      const session=sessionMap.get(String(row.attendance_session_id))||{};
+      const op=operatorsMap.get(operatorsKey(row));
+      const lineStd = (op && (op.lineaproduzione || op.lineaProduzione || op.linea_produzione || op.linea)) || row.line_orig || "";
+      rows.push([
+        session.work_date || "",
+        row.nome || "",
+        row.cognome || "",
+        row.line_day || session.line_name || "",
+        lineStd,
+        num(row.ore_standard || row.base_ore_standard,0),
+        Number(minToHours(row.work_min)),
+        Number(row.final_min)||0,
+        safeWorks(row.lavorazioni),
+        row.postazione || ""
+      ]);
+    });
+    if(rows.length===1){ show(msg,"Nessuna riga da esportare con i filtri attivi.","info"); return; }
+    const blob=makeXlsx(rows);
+    const start=f.from || (sessions[0] && sessions[0].work_date) || currentYearStart();
+    const end=f.to || (sessions[sessions.length-1] && sessions[sessions.length-1].work_date) || todayIso();
+    const filename=`mega_database_presenze_${start}_${end}.xlsx`;
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+    show(msg,`Export Excel generato correttamente: ${rows.length-1} righe esportate.`,"success");
+  }
+
+  function bindMegaAttendance(){
+    ensureAttendanceControls();
+    const nav=[$("openAttendanceAdminBtn"),$("homeOpenAttendanceAdminBtn")].filter(Boolean);
+    nav.forEach(button=>button.addEventListener("click",event=>{ event.preventDefault(); event.stopImmediatePropagation(); openMegaAttendance(); },true));
+    const refresh=$("refreshAttendanceAdminBtn");
+    if(refresh) refresh.addEventListener("click",event=>{ event.preventDefault(); event.stopImmediatePropagation(); loadMegaSessions(); },true);
+    const from=$("attendanceAdminDateFilter");
+    const to=$("attendanceAdminToDateFilter");
+    const line=$("attendanceAdminLineFilter");
+    const search=$("attendanceAdminSearchInput");
+    if(from) from.addEventListener("change",event=>{ event.stopImmediatePropagation(); state.selectedSessionId=null; state.rows=[]; loadMegaSessions(); },true);
+    if(to) to.addEventListener("change",event=>{ event.stopImmediatePropagation(); state.selectedSessionId=null; state.rows=[]; loadMegaSessions(); },true);
+    if(line) line.addEventListener("change",event=>{ event.stopImmediatePropagation(); state.selectedSessionId=null; state.rows=[]; loadMegaSessions(); },true);
+    if(search) search.addEventListener("input",event=>{ event.stopImmediatePropagation(); renderRows(); },true);
+    const exportBtn=$("exportMegaAttendanceBtn");
+    if(exportBtn) exportBtn.addEventListener("click",event=>{ event.preventDefault(); exportMegaDatabase(); });
+  }
+  document.addEventListener("DOMContentLoaded",()=>setTimeout(bindMegaAttendance,1400));
+})();
