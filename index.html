@@ -348,7 +348,7 @@
               <h2>Assenze programmate</h2>
               <p>Qui registri ferie, permessi, corsi, malattie e altre assenze previste. La sezione resta separata dall'inserimento presenze: non modifica in automatico le persone già assenti durante il caricamento giornaliero.</p>
             </div>
-            <div class="planned-header-actions"><button id="refreshPlannedAbsencesBtn" class="btn btn-secondary" type="button">Aggiorna dati</button></div>
+            <div class="planned-header-actions"><button id="refreshPlannedAbsencesBtn" class="btn btn-secondary" type="button">Ricarica dati da database</button></div>
           </div>
 
           <div id="plannedAbsencesMessage" class="message hidden" role="alert" aria-live="polite"></div>
@@ -562,5 +562,48 @@
       </div>
     </div>
   </div>
+
+  <script>
+    /* MOBILE MENU HARD FIX 2026-07-07: independent from app.js */
+    (function(){
+      function byId(id){ return document.getElementById(id); }
+      function isMobile(){ return window.matchMedia && window.matchMedia('(max-width: 860px)').matches; }
+      function closeMenu(){
+        var menu=byId('topbarMenu'), btn=byId('menuToggle'), backdrop=byId('mobileMenuBackdrop');
+        if(menu) menu.classList.remove('is-open');
+        if(btn){ btn.classList.remove('is-open'); btn.setAttribute('aria-expanded','false'); btn.setAttribute('aria-label','Apri menu'); }
+        if(backdrop) backdrop.classList.add('hidden');
+        document.body.classList.remove('mobile-menu-open');
+      }
+      function openMenu(){
+        var menu=byId('topbarMenu'), btn=byId('menuToggle'), backdrop=byId('mobileMenuBackdrop');
+        if(menu) menu.classList.add('is-open');
+        if(btn){ btn.classList.add('is-open'); btn.setAttribute('aria-expanded','true'); btn.setAttribute('aria-label','Chiudi menu'); }
+        if(backdrop) backdrop.classList.remove('hidden');
+        document.body.classList.add('mobile-menu-open');
+      }
+      function toggleMenu(){
+        var menu=byId('topbarMenu');
+        if(menu && menu.classList.contains('is-open')) closeMenu(); else openMenu();
+      }
+      function bindMobileMenu(){
+        var btn=byId('menuToggle'), menu=byId('topbarMenu'), backdrop=byId('mobileMenuBackdrop');
+        if(!btn || !menu || btn.dataset.hardMenuBound === '1') return;
+        btn.dataset.hardMenuBound='1';
+        btn.onclick=function(ev){ ev.preventDefault(); ev.stopPropagation(); toggleMenu(); return false; };
+        if(backdrop){ backdrop.onclick=function(ev){ ev.preventDefault(); closeMenu(); return false; }; }
+        document.addEventListener('click', function(ev){
+          var target=ev.target;
+          if(!isMobile()) return;
+          if(menu.classList.contains('is-open') && target && target.closest && target.closest('#topbarMenu button')) closeMenu();
+        }, true);
+        document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape') closeMenu(); });
+        window.addEventListener('resize', function(){ if(!isMobile()) closeMenu(); });
+      }
+      if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindMobileMenu); else bindMobileMenu();
+      window.VSLMobileMenu = { open: openMenu, close: closeMenu, toggle: toggleMenu, bind: bindMobileMenu };
+    })();
+  </script>
+
 </body>
 </html>
