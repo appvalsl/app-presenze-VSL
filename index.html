@@ -187,7 +187,7 @@
                   <div class="form-grid form-grid-3 setup-friendly-grid">
                     <div class="field friendly-field">
                       <label for="lunchMin">Pausa pranzo</label>
-                      <input id="lunchMin" type="number" min="0" step="1" inputmode="numeric" value="0">
+                      <input id="lunchMin" type="number" min="0" step="1" inputmode="numeric" value="60">
                       <div class="quick-buttons quick-buttons-large">
                         <button type="button" class="quick-btn" data-target="lunchMin" data-value="0">0</button>
                         <button type="button" class="quick-btn" data-target="lunchMin" data-value="15">15</button>
@@ -197,8 +197,8 @@
                       </div>
                     </div>
                     <div class="field friendly-field">
-                      <label for="snackMin">Pausa breve / snack</label>
-                      <input id="snackMin" type="number" min="0" step="1" inputmode="numeric" value="0">
+                      <label for="snackMin">Pausa colazione</label>
+                      <input id="snackMin" type="number" min="0" step="1" inputmode="numeric" value="10">
                       <div class="quick-buttons quick-buttons-large">
                         <button type="button" class="quick-btn" data-target="snackMin" data-value="0">0</button>
                         <button type="button" class="quick-btn" data-target="snackMin" data-value="10">10</button>
@@ -293,16 +293,9 @@
                 </div>
               </div>
 
-              <div id="rowsSetupSummary" class="summary-box compact"></div>
+              <div id="rowsSetupSummary" class="summary-box compact hidden" aria-hidden="true"></div>
               <div id="rowsErrors" class="message hidden" role="alert" aria-live="polite"></div>
 
-              <div class="actions toolbar">
-                <button id="backToSetupBtn" class="btn btn-secondary" type="button">Torna al setup</button>
-                <button id="saveRowsBtn" class="btn btn-primary" type="button">Salva nel database</button>
-                <button id="resetRowsBtn" class="btn btn-danger">
-  Reset presenze
-</button>
-              </div>
 
               <div class="card inline-card add-operator-panel">
                 <div class="card-header compact-header">
@@ -337,6 +330,11 @@
                   </thead>
                   <tbody id="attendanceTableBody"></tbody>
                 </table>
+              </div>
+              <div class="actions toolbar rows-bottom-toolbar">
+                <button id="backToSetupBtn" class="btn btn-secondary" type="button">Torna al setup</button>
+                <button id="saveRowsBtn" class="btn btn-primary" type="button">Salva nel database</button>
+                <button id="resetRowsBtn" class="btn btn-danger" type="button">Reset presenze</button>
               </div>
             </div>
           </section>
