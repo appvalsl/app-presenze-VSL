@@ -2092,6 +2092,7 @@ async function handleRowTableInteraction(event) {
                       data-field="flessibilita_hours"
                       ${Boolean(row.is_duplicate) ? "readonly disabled" : ""}
                     >
+                    
                     ${Boolean(row.is_duplicate) ? '<div class="duplicate-note">Riga duplicata: ore standard bloccate a 0.</div>' : ''}
                   </div>
                 </div>
@@ -4438,6 +4439,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const esc = (v) => String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
   const todayIso = () => new Date().toISOString().slice(0,10);
   const currentMonth = () => new Date().toISOString().slice(0,7);
+  function pad2(value){ return String(value).padStart(2,"0"); }
+  function dateToIsoLocal(date){ return date.getFullYear()+"-"+pad2(date.getMonth()+1)+"-"+pad2(date.getDate()); }
+  function currentMonthBounds(){ const now=new Date(); const first=new Date(now.getFullYear(), now.getMonth(), 1); const last=new Date(now.getFullYear(), now.getMonth()+1, 0); return { month: now.getFullYear()+"-"+pad2(now.getMonth()+1), from: dateToIsoLocal(first), to: dateToIsoLocal(last) }; }
+  function applyCurrentMonthDefaults(force){ const bounds=currentMonthBounds(); const from=$("plannedAbsenceFromFilter"); const to=$("plannedAbsenceToFilter"); const month=$("plannedAbsenceMonth"); if(from && (force || !from.value)) from.value=bounds.from; if(to && (force || !to.value)) to.value=bounds.to; if(month && (force || !month.value)) month.value=bounds.month; }
+  function monthInfo(monthValue){ const raw=monthValue || currentMonth(); const parts=String(raw).split("-").map(Number); const year=parts[0] || new Date().getFullYear(); const monthIndex=(parts[1] ? parts[1]-1 : new Date().getMonth()); const first=new Date(year, monthIndex, 1); const last=new Date(year, monthIndex+1, 0); return { year, monthIndex, first, last, days:last.getDate(), leading:(first.getDay()+6)%7, month: year+"-"+pad2(monthIndex+1) }; }
   const state = { user:null, profile:null, isAdmin:false, isSuperUser:false, operators:[], absences:[], filtered:[] };
   function show(el,msg,type){ if(!el) return; el.textContent=msg; el.className="message "+(type||"info"); el.classList.remove("hidden"); }
   function hide(el){ if(!el) return; el.textContent=""; el.className="message hidden"; }
@@ -4532,12 +4538,30 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   function calendar(){
     const box=$("plannedAbsenceCalendar"); if(!box) return;
-    const m=$("plannedAbsenceMonth")?.value||currentMonth();
-    const source=Array.isArray(state.filtered)?state.filtered:state.absences;
-    const rows=source.filter(a=>canUseLine(a.line_name)&&String(a.absence_date||"").startsWith(m));
-    if(!rows.length){ box.innerHTML='<div class="planned-empty">Nessuna assenza trovata nel mese selezionato con i filtri attivi.</div>'; return; }
-    const g=new Map(); rows.forEach(r=>{ const d=r.absence_date||"Senza data"; if(!g.has(d)) g.set(d,[]); g.get(d).push(r); });
-    box.innerHTML=[...g.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([d,items])=>`<div class="planned-day"><div class="planned-day-head"><span>${esc(formatDateIT(d))}</span><span class="planned-day-count">${items.length}</span></div>${lineSummaryHtml(items)}<ul class="planned-day-list">${items.map(i=>`<li class="planned-day-item"><span><strong>${esc(i.operator_name||"-")}</strong><small>${esc(i.line_name||"Senza linea")}</small></span><span class="planned-day-item-right">${esc(i.reason||"ALTRO")} · ${esc(num(i.hours,0).toFixed(2))}h · ${esc(num(i.fte_absence_programmabili,0).toFixed(2))} FTE ${canEdit(i)?`<button class="btn btn-danger btn-small planned-calendar-delete" data-action="delete" data-id="${esc(i.id)}" type="button">Elimina</button>`:""}</span></li>`).join("")}</ul></div>`).join("");
+    const info=monthInfo($("plannedAbsenceMonth")?.value||currentMonth());
+    const reason=$("plannedAbsenceReasonFilter")?.value||"";
+    const lineFilter=$("plannedAbsenceLineFilter")?.value||"";
+    const search=norm($("plannedAbsenceSearch")?.value||"");
+    const monthRows=(state.absences||[]).filter(a=>{
+      const sameMonth=String(a.absence_date||"").startsWith(info.month);
+      const lineOk=!lineFilter || a.line_name===lineFilter;
+      const reasonOk=!reason || a.reason===reason;
+      const searchOk=!search || norm([a.operator_name,a.line_name,a.reason,a.notes,a.created_by_email].join(" ")).includes(search);
+      return canUseLine(a.line_name) && sameMonth && lineOk && reasonOk && searchOk;
+    });
+    const byDay=new Map();
+    monthRows.forEach(r=>{ const d=r.absence_date||""; if(!byDay.has(d)) byDay.set(d,[]); byDay.get(d).push(r); });
+    const weekLabels=["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
+    const header=weekLabels.map(label=>`<div class="planned-calendar-weekday">${label}</div>`).join("");
+    const cells=[];
+    for(let i=0;i<info.leading;i++){ cells.push('<div class="planned-calendar-cell planned-calendar-cell-empty" aria-hidden="true"></div>'); }
+    for(let day=1; day<=info.days; day++){
+      const iso=info.month+"-"+pad2(day);
+      const items=(byDay.get(iso)||[]).slice().sort((a,b)=>String(a.line_name||"").localeCompare(String(b.line_name||""),"it") || String(a.operator_name||"").localeCompare(String(b.operator_name||""),"it"));
+      const detail=items.length ? `${lineSummaryHtml(items)}<div class="planned-calendar-entries">${items.map(i=>`<div class="planned-calendar-entry"><div class="planned-calendar-entry-main"><strong>${esc(i.operator_name||"-")}</strong><span>${esc(i.reason||"ALTRO")} · ${esc(num(i.hours,0).toFixed(2))}h · ${esc(num(i.fte_absence_programmabili,0).toFixed(2))} FTE</span></div><div class="planned-calendar-entry-line">${esc(i.line_name||"Senza linea")}</div>${canEdit(i)?`<div class="planned-calendar-entry-actions"><button class="btn btn-secondary btn-small" data-action="edit" data-id="${esc(i.id)}" type="button">Modifica</button><button class="btn btn-danger btn-small" data-action="delete" data-id="${esc(i.id)}" type="button">Elimina</button></div>`:""}</div>`).join("")}</div>` : `<div class="planned-calendar-no-absence">-</div>`;
+      cells.push(`<div class="planned-calendar-cell${items.length?" has-items":""}"><div class="planned-calendar-cell-head"><span class="planned-calendar-number">${day}</span><span class="planned-calendar-count">${items.length}</span></div>${detail}</div>`);
+    }
+    box.innerHTML=`<div class="planned-calendar-grid">${header}${cells.join("")}</div>`;
   }
   function render(){ lines(); filters(); stats(); table(); calendar(); }
   function exportExcelXml(value){
@@ -4660,7 +4684,7 @@ document.addEventListener("DOMContentLoaded", () => {
     show($("plannedAbsencesMessage"),`Export Excel generato correttamente: ${riepilogo.length-1} righe di riepilogo e ${Math.max(0,dettaglio.length-1)} assenze di dettaglio.`,"success");
   }
   window.exportPlannedAbsencesView = exportPlannedAbsencesView;
-  async function open(){ await profile(); reveal(); if(!state.user){ show($("globalMessage"),"Effettua il login.","error"); return; } view(); showChoiceOnly(); if(!$("plannedAbsenceDate").value) $("plannedAbsenceDate").value=todayIso(); if($("plannedAbsenceEndDate")&&!$("plannedAbsenceEndDate").value) $("plannedAbsenceEndDate").value=$("plannedAbsenceDate").value||todayIso(); if(!$("plannedAbsenceMonth").value) $("plannedAbsenceMonth").value=currentMonth(); await loadOperators(); await loadAbsences(); render(); updateFtePreview(); }
+  async function open(){ await profile(); reveal(); if(!state.user){ show($("globalMessage"),"Effettua il login.","error"); return; } view(); showChoiceOnly(); applyCurrentMonthDefaults(true); if(!$("plannedAbsenceDate").value) $("plannedAbsenceDate").value=todayIso(); if($("plannedAbsenceEndDate")&&!$("plannedAbsenceEndDate").value) $("plannedAbsenceEndDate").value=$("plannedAbsenceDate").value||todayIso(); if(!$("plannedAbsenceMonth").value) $("plannedAbsenceMonth").value=currentMonth(); await loadOperators(); await loadAbsences(); render(); updateFtePreview(); }
   function bind(){
     const top=$("openPlannedAbsencesBtn");
     if(top&&!top.dataset.boundAbs){ top.dataset.boundAbs="1"; top.addEventListener("click",open); }
