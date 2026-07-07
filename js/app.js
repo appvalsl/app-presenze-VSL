@@ -116,11 +116,6 @@ const InserimentoPresenzeApp = (() => {
       baseNetMinutes: 0
     },
     rows: [],
-    attendanceAvailability: {
-      workDate: "",
-      loading: false,
-      byRowKey: {}
-    },
     operatorsAdmin: {
       searchText: "",
       lineFilter: "",
@@ -720,9 +715,6 @@ function handleResetRows() {
         if (state.rows.length) {
           recalcAllRows();
           renderRowsView();
-          if (element === dom.workDate || element === dom.lineSelect) {
-            scheduleAttendanceAvailabilityWarnings();
-          }
         }
         saveState();
       });
@@ -1430,7 +1422,7 @@ function handleResetRows() {
     };
   }
 
-  async function handleAddOperator() {
+  function handleAddOperator() {
     hideBox(dom.rowsErrors);
     hideBox(dom.globalMessage);
 
@@ -1476,7 +1468,6 @@ function handleResetRows() {
     state.activeMainView = "attendance";
 
     saveState();
-    await refreshAttendanceAvailabilityWarnings();
     renderRowsView();
 
     if (dom.addOperatorSearch) {
@@ -1506,147 +1497,6 @@ function handleResetRows() {
 
       return rowName && operatorName && rowName === operatorName;
     });
-  }
-
-
-  function attendanceAvailabilityRowKey(row) {
-    if (!row) return "";
-    if (row.operator_id !== undefined && row.operator_id !== null && row.operator_id !== "") {
-      return "OPID:" + String(row.operator_id);
-    }
-    if (row.id_operatore) {
-      return "CODE:" + normalizeText(row.id_operatore);
-    }
-    const fullName = [row.cognome, row.nome].filter(Boolean).join(" ");
-    return "NAME:" + normalizeText(fullName);
-  }
-
-  function isSameAttendanceOperator(currentRow, savedRow) {
-    if (!currentRow || !savedRow) return false;
-    if (
-      currentRow.operator_id !== undefined && currentRow.operator_id !== null && currentRow.operator_id !== "" &&
-      savedRow.operator_id !== undefined && savedRow.operator_id !== null && savedRow.operator_id !== ""
-    ) {
-      return String(currentRow.operator_id) === String(savedRow.operator_id);
-    }
-    if (currentRow.id_operatore && savedRow.id_operatore) {
-      return normalizeText(currentRow.id_operatore) === normalizeText(savedRow.id_operatore);
-    }
-    const currentName = normalizeText([currentRow.cognome, currentRow.nome].filter(Boolean).join(" "));
-    const savedName = normalizeText([savedRow.cognome, savedRow.nome].filter(Boolean).join(" "));
-    return Boolean(currentName && savedName && currentName === savedName);
-  }
-
-  function formatDecimalHours(value) {
-    const n = Number(value) || 0;
-    return n.toFixed(2).replace(".00", "");
-  }
-
-  function getAttendanceAvailabilityWarning(row) {
-    if (!row || !state.attendanceAvailability || !state.attendanceAvailability.byRowKey) return null;
-    return state.attendanceAvailability.byRowKey[attendanceAvailabilityRowKey(row)] || null;
-  }
-
-  function renderAttendanceAvailabilityWarning(row) {
-    const warning = getAttendanceAvailabilityWarning(row);
-    if (!warning || !warning.totalHours || warning.totalHours <= 0) return "";
-    const standardHours = Number(row.ore_standard) || Number(row.base_ore_standard) || warning.standardHours || 0;
-    const residual = Math.max(standardHours - warning.totalHours, 0);
-    const currentHours = (Number(row.work_min) || 0) / 60;
-    const projectedTotal = warning.totalHours + currentHours;
-    const over = standardHours > 0 && projectedTotal > standardHours;
-    const rows = warning.groups.map((item) => {
-      const station = item.postazione ? " - " + item.postazione : "";
-      return `<li><strong>${escapeHtml(item.line)}</strong>${escapeHtml(station)}: ${escapeHtml(formatDecimalHours(item.hours))}h</li>`;
-    }).join("");
-    const dateText = state.setup.workDate || warning.workDate || "la data selezionata";
-    return `
-      <div class="operator-hours-warning ${over ? "is-over" : ""}">
-        <div class="operator-hours-warning-title">ATTENZIONE</div>
-        <div>Il giorno <strong>${escapeHtml(dateText)}</strong> sono già state inserite <strong>${escapeHtml(formatDecimalHours(warning.totalHours))}h</strong> per questo operatore.</div>
-        <ul>${rows}</ul>
-        <div>Ore standard operatore: <strong>${escapeHtml(formatDecimalHours(standardHours))}h</strong>.</div>
-        <div>Nella tua linea non può aver lavorato più di <strong>${escapeHtml(formatDecimalHours(residual))}h</strong>.</div>
-        <div class="operator-hours-warning-footer ${over ? "is-danger" : "is-ok"}">
-          ${over
-            ? `Con le ore inserite qui arriveresti a ${escapeHtml(formatDecimalHours(projectedTotal))}h totali, superando lo standard.`
-            : `Totale previsto dopo questa riga: ${escapeHtml(formatDecimalHours(projectedTotal))}h.`}
-        </div>
-      </div>
-    `;
-  }
-
-  let attendanceAvailabilityTimer = null;
-  function scheduleAttendanceAvailabilityWarnings() {
-    if (attendanceAvailabilityTimer) clearTimeout(attendanceAvailabilityTimer);
-    attendanceAvailabilityTimer = setTimeout(() => {
-      refreshAttendanceAvailabilityWarnings().then(() => renderRowsView()).catch((error) => {
-        console.warn("Controllo ore già inserite non riuscito:", error);
-      });
-    }, 250);
-  }
-
-  async function refreshAttendanceAvailabilityWarnings() {
-    if (!client || !Array.isArray(state.rows) || !state.rows.length || !state.setup.workDate) {
-      state.attendanceAvailability = { workDate: state.setup.workDate || "", loading: false, byRowKey: {} };
-      return;
-    }
-    const workDate = state.setup.workDate;
-    state.attendanceAvailability = { workDate, loading: true, byRowKey: {} };
-    try {
-      const sessionsResponse = await client
-        .from("attendance_sessions")
-        .select("id,work_date,line_name")
-        .eq("work_date", workDate);
-      if (sessionsResponse.error) throw sessionsResponse.error;
-      const sessions = Array.isArray(sessionsResponse.data) ? sessionsResponse.data : [];
-      const sessionIds = sessions.map((session) => session.id).filter(Boolean);
-      if (!sessionIds.length) {
-        state.attendanceAvailability = { workDate, loading: false, byRowKey: {} };
-        return;
-      }
-      const sessionById = new Map(sessions.map((session) => [String(session.id), session]));
-      const rowsResponse = await client
-        .from("attendance_rows")
-        .select("id,attendance_session_id,operator_id,cognome,nome,id_operatore,line_day,postazione,work_min,ore_standard")
-        .in("attendance_session_id", sessionIds);
-      if (rowsResponse.error) throw rowsResponse.error;
-      const savedRows = Array.isArray(rowsResponse.data) ? rowsResponse.data : [];
-      const byRowKey = {};
-      state.rows.forEach((currentRow) => {
-        const key = attendanceAvailabilityRowKey(currentRow);
-        if (!key) return;
-        const matches = savedRows.filter((savedRow) => isSameAttendanceOperator(currentRow, savedRow));
-        if (!matches.length) return;
-        const groupsMap = new Map();
-        let totalMinutes = 0;
-        matches.forEach((savedRow) => {
-          const session = sessionById.get(String(savedRow.attendance_session_id)) || {};
-          const line = savedRow.line_day || session.line_name || "Linea non indicata";
-          const postazione = savedRow.postazione || "";
-          const groupKey = line + "||" + postazione;
-          const minutes = Number(savedRow.work_min) || 0;
-          totalMinutes += minutes;
-          if (!groupsMap.has(groupKey)) {
-            groupsMap.set(groupKey, { line, postazione, minutes: 0, hours: 0 });
-          }
-          const group = groupsMap.get(groupKey);
-          group.minutes += minutes;
-          group.hours = group.minutes / 60;
-        });
-        byRowKey[key] = {
-          workDate,
-          totalMinutes,
-          totalHours: totalMinutes / 60,
-          standardHours: Number(currentRow.ore_standard) || Number(currentRow.base_ore_standard) || 0,
-          groups: Array.from(groupsMap.values()).sort((a, b) => String(a.line).localeCompare(String(b.line), "it"))
-        };
-      });
-      state.attendanceAvailability = { workDate, loading: false, byRowKey };
-    } catch (error) {
-      console.warn("Errore controllo ore già inserite:", error);
-      state.attendanceAvailability = { workDate, loading: false, byRowKey: {} };
-    }
   }
 
 
@@ -2158,7 +2008,6 @@ async function handleRowTableInteraction(event) {
           <tr>
             <td data-label="Operatore" class="cell-operator">
               <div class="operator-name">${escapeHtml(operatorLabel)}</div>
-              ${renderAttendanceAvailabilityWarning(row)}
             </td>
 
 
@@ -4885,3 +4734,398 @@ document.addEventListener("click",function(event){
     window.exportPlannedAbsencesView();
   }
 });
+
+
+/* ===== PATCH FINALE RIEPILOGO ARCHIVIO ADMIN 2026-07-07 ===== */
+(function(){
+  "use strict";
+  const client = window.AppSupabase && window.AppSupabase.getClient ? window.AppSupabase.getClient() : null;
+  const $ = (id) => document.getElementById(id);
+  const esc = (value) => String(value ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+  const norm = (value) => String(value || "").trim().toUpperCase();
+  const minToHours = (minutes) => ((Number(minutes) || 0) / 60).toFixed(2);
+  const safeJsonWorks = (value) => {
+    if (Array.isArray(value)) return value;
+    if (!value) return [];
+    try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch (_) { return []; }
+  };
+  const worksLabel = (value) => {
+    const labels = safeJsonWorks(value).map((item) => typeof item === "object" ? (item.nome || item.name || item.lavorazione || "") : String(item || "")).filter(Boolean);
+    return labels.length ? labels.join(", ") : "-";
+  };
+  function showMessage(target, text, type){
+    if (!target) return;
+    target.textContent = text;
+    target.className = "message " + (type || "info");
+    target.classList.remove("hidden");
+  }
+  function hideMessage(target){
+    if (!target) return;
+    target.textContent = "";
+    target.className = "message hidden";
+  }
+  function switchMainView(viewId){
+    ["homeView","attendanceView","plannedAbsencesView","operatorsAdminView","attendanceAdminView"].forEach((id) => {
+      const el = $(id);
+      if (el) el.classList.toggle("hidden", id !== viewId);
+    });
+  }
+
+  /* 1) RIEPILOGO PRESENZE ROBUSTO */
+  const attendanceState = { sessions: [], rows: [], selectedSessionId: null };
+  async function openReliableAttendanceAdmin(){
+    if (!client) return;
+    switchMainView("attendanceAdminView");
+    hideMessage($("globalMessage"));
+    if ($("attendanceAdminDateFilter")) $("attendanceAdminDateFilter").value = "";
+    if ($("attendanceAdminLineFilter")) $("attendanceAdminLineFilter").value = "";
+    if ($("attendanceAdminSearchInput")) $("attendanceAdminSearchInput").value = "";
+    attendanceState.selectedSessionId = null;
+    attendanceState.rows = [];
+    await loadReliableAttendanceSessions();
+  }
+  async function loadReliableAttendanceSessions(){
+    if (!client) return;
+    const message = $("attendanceAdminMessage");
+    hideMessage(message);
+    let query = client.from("attendance_sessions").select("*").order("work_date", { ascending:false }).order("line_name", { ascending:true });
+    const date = $("attendanceAdminDateFilter") ? $("attendanceAdminDateFilter").value : "";
+    const line = $("attendanceAdminLineFilter") ? $("attendanceAdminLineFilter").value : "";
+    if (date) query = query.eq("work_date", date);
+    if (line) query = query.eq("line_name", line);
+    const response = await query;
+    if (response.error) {
+      showMessage(message, response.error.message || "Errore caricamento riepilogo presenze.", "error");
+      return;
+    }
+    attendanceState.sessions = Array.isArray(response.data) ? response.data : [];
+    renderReliableAttendanceLineFilter();
+    renderReliableAttendanceSessions();
+    renderReliableAttendanceRows();
+  }
+  function renderReliableAttendanceLineFilter(){
+    const select = $("attendanceAdminLineFilter");
+    if (!select) return;
+    const current = select.value || "";
+    const lines = Array.from(new Set(attendanceState.sessions.map((session) => session.line_name).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"it"));
+    select.innerHTML = '<option value="">Tutte le linee</option>' + lines.map((line) => `<option value="${esc(line)}">${esc(line)}</option>`).join("");
+    select.value = lines.includes(current) ? current : "";
+  }
+  function renderReliableAttendanceSessions(){
+    const body = $("attendanceAdminSessionsBody");
+    if (!body) return;
+    if (!attendanceState.sessions.length) {
+      body.innerHTML = '<tr><td colspan="5"><div class="muted">Nessuna giornata salvata trovata.</div></td></tr>';
+      return;
+    }
+    body.innerHTML = attendanceState.sessions.map((session) => `
+      <tr class="${String(session.id)===String(attendanceState.selectedSessionId) ? "is-selected" : ""}">
+        <td data-label="Data">${esc(session.work_date || "-")}</td>
+        <td data-label="Linea">${esc(session.line_name || "-")}</td>
+        <td data-label="Inizio">${esc(session.start_time || "-")}</td>
+        <td data-label="Fine">${esc(session.end_time || "-")}</td>
+        <td data-label="Azioni"><button class="btn btn-secondary btn-small" type="button" data-reliable-session-id="${esc(session.id)}">Apri dettaglio</button></td>
+      </tr>
+    `).join("");
+    body.querySelectorAll("button[data-reliable-session-id]").forEach((button) => {
+      button.addEventListener("click", () => loadReliableAttendanceRows(button.dataset.reliableSessionId));
+    });
+  }
+  async function loadReliableAttendanceRows(sessionId){
+    attendanceState.selectedSessionId = sessionId;
+    const message = $("attendanceAdminMessage");
+    hideMessage(message);
+    const response = await client.from("attendance_rows").select("*").eq("attendance_session_id", sessionId).order("sort_order", { ascending:true });
+    if (response.error) {
+      showMessage(message, response.error.message || "Errore caricamento dettaglio presenze.", "error");
+      return;
+    }
+    attendanceState.rows = Array.isArray(response.data) ? response.data : [];
+    renderReliableAttendanceSessions();
+    renderReliableAttendanceRows();
+  }
+  function renderReliableAttendanceRows(){
+    const body = $("attendanceAdminRowsBody");
+    if (!body) return;
+    const search = norm($("attendanceAdminSearchInput") ? $("attendanceAdminSearchInput").value : "");
+    const rows = attendanceState.rows.filter((row) => !search || norm([row.cognome,row.nome,row.line_day,row.postazione,JSON.stringify(row.lavorazioni || [])].join(" ")).includes(search));
+    if (!attendanceState.selectedSessionId) {
+      body.innerHTML = '<tr><td colspan="8"><div class="muted">Apri una giornata per vedere il dettaglio.</div></td></tr>';
+      return;
+    }
+    if (!rows.length) {
+      body.innerHTML = '<tr><td colspan="8"><div class="muted">Nessuna riga trovata.</div></td></tr>';
+      return;
+    }
+    body.innerHTML = rows.map((row) => {
+      const name = [row.cognome,row.nome].filter(Boolean).join(" ") || "Operatore";
+      const extras = `${Number(row.evento_min)||0}/${Number(row.assemblea_min)||0}/${Number(row.sciopero_min)||0} min`;
+      return `
+        <tr>
+          <td data-label="Operatore"><strong>${esc(name)}</strong></td>
+          <td data-label="Linea">${esc(row.line_day || "-")}</td>
+          <td data-label="Postazione">${esc(row.postazione || "-")}</td>
+          <td data-label="Lavorazioni">${esc(worksLabel(row.lavorazioni))}</td>
+          <td data-label="Ore">${esc(minToHours(row.work_min))}</td>
+          <td data-label="Finali">${esc(Number(row.final_min)||0)} min</td>
+          <td data-label="Extra">${esc(extras)}</td>
+          <td data-label="Azioni"><button class="btn btn-secondary btn-small" type="button" data-reliable-edit-row="${esc(row.id)}">Modifica ore</button></td>
+        </tr>
+      `;
+    }).join("");
+    body.querySelectorAll("button[data-reliable-edit-row]").forEach((button) => {
+      button.addEventListener("click", () => reliableQuickEditRow(button.dataset.reliableEditRow));
+    });
+  }
+  async function reliableQuickEditRow(rowId){
+    const row = attendanceState.rows.find((item) => String(item.id) === String(rowId));
+    if (!row) return;
+    const value = prompt("Ore lavorate", minToHours(row.work_min));
+    if (value === null) return;
+    const number = Number(String(value).replace(",","."));
+    if (!Number.isFinite(number) || number < 0) {
+      showMessage($("attendanceAdminMessage"), "Inserisci un numero di ore valido.", "error");
+      return;
+    }
+    const workMin = Math.round(number * 60);
+    const session = attendanceState.sessions.find((item) => String(item.id) === String(row.attendance_session_id));
+    const finalMin = Math.max(0, workMin - (Number(session && session.snack_min)||0) - (Number(session && session.stops_min)||0) - (Number(row.evento_min)||0) - (Number(row.assemblea_min)||0) - (Number(row.sciopero_min)||0));
+    const response = await client.from("attendance_rows").update({ work_min: workMin, final_min: finalMin, dirty:true }).eq("id", rowId).select();
+    if (response.error) {
+      showMessage($("attendanceAdminMessage"), response.error.message || "Errore modifica presenza.", "error");
+      return;
+    }
+    await loadReliableAttendanceRows(row.attendance_session_id);
+    showMessage($("attendanceAdminMessage"), "Presenza modificata correttamente.", "success");
+  }
+  function bindReliableAttendance(){
+    const navButtons = [$("openAttendanceAdminBtn"), $("homeOpenAttendanceAdminBtn")].filter(Boolean);
+    navButtons.forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        openReliableAttendanceAdmin();
+      }, true);
+    });
+    const refresh = $("refreshAttendanceAdminBtn");
+    if (refresh) refresh.addEventListener("click", (event) => { event.preventDefault(); loadReliableAttendanceSessions(); }, true);
+    const date = $("attendanceAdminDateFilter");
+    if (date) date.addEventListener("change", () => { attendanceState.selectedSessionId = null; attendanceState.rows = []; loadReliableAttendanceSessions(); }, true);
+    const line = $("attendanceAdminLineFilter");
+    if (line) line.addEventListener("change", () => { attendanceState.selectedSessionId = null; attendanceState.rows = []; loadReliableAttendanceSessions(); }, true);
+    const search = $("attendanceAdminSearchInput");
+    if (search) search.addEventListener("input", renderReliableAttendanceRows, true);
+  }
+
+  /* 2) ARCHIVIO ASSENZE: MANTIENE SCROLL DURANTE RICERCA */
+  function bindPlannedAbsencesSearchStability(){
+    const input = $("plannedAbsenceSearch");
+    if (!input || input.dataset.noJumpPatch === "1") return;
+    input.dataset.noJumpPatch = "1";
+    input.addEventListener("input", () => {
+      const x = window.scrollX;
+      const y = window.scrollY;
+      window.requestAnimationFrame(() => {
+        input.focus({ preventScroll:true });
+        window.scrollTo(x, y);
+      });
+      setTimeout(() => {
+        input.focus({ preventScroll:true });
+        window.scrollTo(x, y);
+      }, 0);
+    }, true);
+  }
+
+  /* 3) GESTIONE APPLICAZIONE: HOME ADMIN A PULSANTI */
+  const adminState = { users: [], workOperations: [] };
+  function ensureAdminDashboard(){
+    const view = $("operatorsAdminView");
+    if (!view) return;
+    const mainCard = view.querySelector(":scope > .card") || view;
+    if ($("adminAppDashboard")) return;
+    const message = $("operatorsAdminMessage");
+    const panel = document.createElement("div");
+    panel.id = "adminAppDashboard";
+    panel.className = "admin-app-dashboard card inline-card";
+    panel.innerHTML = `
+      <div class="card-header">
+        <h3>Gestione applicazione</h3>
+        <p>Scegli l'area da gestire. Le sezioni sono separate per rendere l'amministrazione più chiara.</p>
+      </div>
+      <div class="admin-app-grid">
+        <button class="admin-app-choice admin-app-choice-primary" type="button" data-admin-area="operators">
+          <span class="admin-app-choice-icon">OP</span>
+          <span class="admin-app-choice-title">Anagrafiche operatori</span>
+          <span class="admin-app-choice-text">Modifica operatori, linea, postazione, ore standard e stato attivo.</span>
+        </button>
+        <button class="admin-app-choice" type="button" data-admin-area="users">
+          <span class="admin-app-choice-icon">USR</span>
+          <span class="admin-app-choice-title">Utenti e permessi</span>
+          <span class="admin-app-choice-text">Gestisci ruolo admin/user, abilitazione e autorizzazioni applicative.</span>
+        </button>
+        <button class="admin-app-choice" type="button" data-admin-area="work">
+          <span class="admin-app-choice-icon">LAV</span>
+          <span class="admin-app-choice-title">Lavorazioni configurate</span>
+          <span class="admin-app-choice-text">Consulta e modifica lavorazioni per linea, postazione, carrello e ordine.</span>
+        </button>
+      </div>
+      <div id="adminUsersPanel" class="admin-subpanel hidden"></div>
+      <div id="adminWorkPanel" class="admin-subpanel hidden"></div>
+    `;
+    if (message) message.insertAdjacentElement("afterend", panel);
+    else mainCard.prepend(panel);
+    panel.querySelectorAll("button[data-admin-area]").forEach((button) => {
+      button.addEventListener("click", () => selectAdminArea(button.dataset.adminArea));
+    });
+    selectAdminArea("operators");
+  }
+  function operatorBlocks(){
+    const view = $("operatorsAdminView");
+    if (!view) return [];
+    const message = $("operatorsAdminMessage");
+    const blocks = [];
+    let node = message ? message.nextElementSibling : null;
+    while (node) {
+      if (node.id === "adminAppDashboard") { node = node.nextElementSibling; continue; }
+      blocks.push(node);
+      node = node.nextElementSibling;
+    }
+    return blocks.filter((el) => el && !["appTablesPanel"].includes(el.id));
+  }
+  function selectAdminArea(area){
+    const dashboard = $("adminAppDashboard");
+    if (!dashboard) return;
+    dashboard.querySelectorAll("button[data-admin-area]").forEach((button) => button.classList.toggle("is-active", button.dataset.adminArea === area));
+    const userPanel = $("adminUsersPanel");
+    const workPanel = $("adminWorkPanel");
+    if (userPanel) userPanel.classList.toggle("hidden", area !== "users");
+    if (workPanel) workPanel.classList.toggle("hidden", area !== "work");
+    operatorBlocks().forEach((block) => block.classList.toggle("hidden", area !== "operators"));
+    if (area === "users") loadAdminUsers();
+    if (area === "work") loadAdminWorkOperations();
+  }
+  async function loadAdminUsers(){
+    const panel = $("adminUsersPanel");
+    if (!panel || !client) return;
+    panel.innerHTML = '<div class="muted">Caricamento utenti...</div>';
+    const response = await client.from("app_users").select("user_id,email,role,can_manage_operators,is_active,allowed_lines").order("email", { ascending:true });
+    if (response.error) {
+      panel.innerHTML = `<div class="message error">${esc(response.error.message)}</div>`;
+      return;
+    }
+    adminState.users = Array.isArray(response.data) ? response.data : [];
+    renderAdminUsers();
+  }
+  function renderAdminUsers(){
+    const panel = $("adminUsersPanel");
+    if (!panel) return;
+    const rows = adminState.users;
+    panel.innerHTML = `
+      <div class="admin-subpanel-head"><h3>Utenti e permessi</h3><button class="btn btn-secondary" type="button" id="adminRefreshUsersBtn">Aggiorna utenti</button></div>
+      <div class="table-wrap"><table class="attendance-table admin-users-table">
+        <thead><tr><th>Email</th><th>Ruolo</th><th>Admin</th><th>Attivo</th><th>Linee autorizzate</th><th>Azioni</th></tr></thead>
+        <tbody>${rows.length ? rows.map((user) => `
+          <tr>
+            <td data-label="Email"><strong>${esc(user.email || "-")}</strong></td>
+            <td data-label="Ruolo">${esc(user.role || "user")}</td>
+            <td data-label="Admin">${user.can_manage_operators ? "Sì" : "No"}</td>
+            <td data-label="Attivo">${user.is_active === false ? "No" : "Sì"}</td>
+            <td data-label="Linee autorizzate">${esc(Array.isArray(user.allowed_lines) ? user.allowed_lines.join(", ") : (user.allowed_lines || "-"))}</td>
+            <td data-label="Azioni"><div class="table-actions"><button class="btn btn-secondary btn-small" type="button" data-admin-toggle-user="${esc(user.user_id)}">${user.can_manage_operators ? "Rendi user" : "Rendi admin"}</button><button class="btn btn-danger btn-small" type="button" data-admin-active-user="${esc(user.user_id)}">${user.is_active === false ? "Riattiva" : "Disattiva"}</button></div></td>
+          </tr>
+        `).join("") : '<tr><td colspan="6"><div class="muted">Nessun utente trovato.</div></td></tr>'}</tbody>
+      </table></div>
+    `;
+    const refresh = $("adminRefreshUsersBtn");
+    if (refresh) refresh.addEventListener("click", loadAdminUsers);
+    panel.querySelectorAll("button[data-admin-toggle-user]").forEach((button) => button.addEventListener("click", () => toggleAdminUser(button.dataset.adminToggleUser)));
+    panel.querySelectorAll("button[data-admin-active-user]").forEach((button) => button.addEventListener("click", () => toggleActiveUser(button.dataset.adminActiveUser)));
+  }
+  async function toggleAdminUser(userId){
+    const user = adminState.users.find((item) => String(item.user_id) === String(userId));
+    if (!user) return;
+    const next = !user.can_manage_operators;
+    const response = await client.from("app_users").update({ role: next ? "admin" : "user", can_manage_operators: next }).eq("user_id", userId).select();
+    if (!response.error) loadAdminUsers();
+  }
+  async function toggleActiveUser(userId){
+    const user = adminState.users.find((item) => String(item.user_id) === String(userId));
+    if (!user) return;
+    const response = await client.from("app_users").update({ is_active: !(user.is_active !== false) }).eq("user_id", userId).select();
+    if (!response.error) loadAdminUsers();
+  }
+  async function loadAdminWorkOperations(){
+    const panel = $("adminWorkPanel");
+    if (!panel || !client) return;
+    panel.innerHTML = '<div class="muted">Caricamento lavorazioni...</div>';
+    const response = await client.from("work_operations").select("id,linea,postazione,lavorazione,carrello,is_active,sort_order").order("linea", { ascending:true }).order("postazione", { ascending:true }).order("sort_order", { ascending:true });
+    if (response.error) {
+      panel.innerHTML = `<div class="message error">${esc(response.error.message)}</div>`;
+      return;
+    }
+    adminState.workOperations = Array.isArray(response.data) ? response.data : [];
+    renderAdminWorkOperations();
+  }
+  function renderAdminWorkOperations(){
+    const panel = $("adminWorkPanel");
+    if (!panel) return;
+    const rows = adminState.workOperations;
+    panel.innerHTML = `
+      <div class="admin-subpanel-head"><h3>Lavorazioni configurate</h3><div class="actions"><button class="btn btn-primary" type="button" id="adminNewWorkBtn">Nuova lavorazione</button><button class="btn btn-secondary" type="button" id="adminRefreshWorkBtn">Aggiorna</button></div></div>
+      <div class="table-wrap"><table class="attendance-table admin-work-table">
+        <thead><tr><th>Linea</th><th>Postazione</th><th>Lavorazione</th><th>Carrello</th><th>Ordine</th><th>Attiva</th><th>Azioni</th></tr></thead>
+        <tbody>${rows.length ? rows.map((row) => `
+          <tr>
+            <td data-label="Linea">${esc(row.linea || "-")}</td>
+            <td data-label="Postazione">${esc(row.postazione || "-")}</td>
+            <td data-label="Lavorazione"><strong>${esc(row.lavorazione || "-")}</strong></td>
+            <td data-label="Carrello">${esc(row.carrello || "-")}</td>
+            <td data-label="Ordine">${esc(row.sort_order || 0)}</td>
+            <td data-label="Attiva">${row.is_active === false ? "No" : "Sì"}</td>
+            <td data-label="Azioni"><div class="table-actions"><button class="btn btn-secondary btn-small" type="button" data-admin-edit-work="${esc(row.id)}">Modifica</button><button class="btn btn-danger btn-small" type="button" data-admin-toggle-work="${esc(row.id)}">${row.is_active === false ? "Riattiva" : "Disattiva"}</button></div></td>
+          </tr>
+        `).join("") : '<tr><td colspan="7"><div class="muted">Nessuna lavorazione configurata.</div></td></tr>'}</tbody>
+      </table></div>
+    `;
+    const refresh = $("adminRefreshWorkBtn");
+    if (refresh) refresh.addEventListener("click", loadAdminWorkOperations);
+    const newBtn = $("adminNewWorkBtn");
+    if (newBtn) newBtn.addEventListener("click", () => editAdminWorkOperation(null));
+    panel.querySelectorAll("button[data-admin-edit-work]").forEach((button) => button.addEventListener("click", () => {
+      const row = adminState.workOperations.find((item) => String(item.id) === String(button.dataset.adminEditWork));
+      editAdminWorkOperation(row);
+    }));
+    panel.querySelectorAll("button[data-admin-toggle-work]").forEach((button) => button.addEventListener("click", () => toggleAdminWorkOperation(button.dataset.adminToggleWork)));
+  }
+  async function editAdminWorkOperation(row){
+    const current = row || { linea:"", postazione:"", lavorazione:"", carrello:"", sort_order:0, is_active:true };
+    const raw = prompt("Formato: LINEA | POSTAZIONE | LAVORAZIONE | CARRELLO | ORDINE | ATTIVA(true/false)", [current.linea,current.postazione,current.lavorazione,current.carrello || "",current.sort_order || 0,current.is_active !== false].join(" | "));
+    if (!raw) return;
+    const parts = raw.split("|").map((item) => item.trim());
+    if (parts.length < 3 || !parts[0] || !parts[1] || !parts[2]) return;
+    const payload = { linea: parts[0], postazione: parts[1], lavorazione: parts[2], carrello: parts[3] || "", sort_order: Number(parts[4]) || 0, is_active: parts[5] === undefined ? true : String(parts[5]).toLowerCase() !== "false" };
+    const response = row && row.id ? await client.from("work_operations").update(payload).eq("id", row.id).select() : await client.from("work_operations").insert(payload).select();
+    if (!response.error) loadAdminWorkOperations();
+  }
+  async function toggleAdminWorkOperation(id){
+    const row = adminState.workOperations.find((item) => String(item.id) === String(id));
+    if (!row) return;
+    const response = await client.from("work_operations").update({ is_active: !(row.is_active !== false) }).eq("id", id).select();
+    if (!response.error) loadAdminWorkOperations();
+  }
+  function bindAdminDashboard(){
+    const buttons = [$("openOperatorsBtn"), $("homeOpenOperatorsBtn")].filter(Boolean);
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => setTimeout(ensureAdminDashboard, 0), true);
+    });
+    ensureAdminDashboard();
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    setTimeout(function(){
+      bindReliableAttendance();
+      bindPlannedAbsencesSearchStability();
+      bindAdminDashboard();
+    }, 1200);
+  });
+})();
