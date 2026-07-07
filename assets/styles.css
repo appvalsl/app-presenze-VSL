@@ -1,4 +1,3 @@
-
 :root{--bg:#f4f7fb;--card:#fff;--text:#1f2937;--muted:#64748b;--primary:#174a87;--primary2:#0f3b70;--line:#d7e2f0;--soft:#eff6ff;--danger:#dc2626;--success:#15803d;--shadow:0 16px 44px rgba(15,23,42,.08);--radius:18px}*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#eef5ff 0%,#f8fafc 48%,#f4f7fb 100%);color:var(--text)}.hidden{display:none!important}.app-shell{min-height:100vh}.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;background:rgba(255,255,255,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}.topbar-left{display:flex;align-items:center;gap:14px}.brand-mark{width:44px;height:44px;border-radius:14px;background:var(--primary);color:#fff;display:grid;place-items:center;font-weight:800}.app-title{font-size:22px;margin:0}.app-subtitle{margin:2px 0 0;color:var(--muted);font-size:13px}.topbar-right{display:flex;align-items:center;gap:10px}.topbar-menu{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.hamburger{display:none}.page{max-width:1480px;margin:0 auto;padding:24px}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;margin-bottom:18px}.inline-card{box-shadow:none;background:#f8fbff}.card-header h2,.rows-top h2{margin:0 0 4px}.card-header p,.rows-top p,.section-desc{margin:0;color:var(--muted)}.rows-top,.modal-header,.section-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.form-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}.single-col{grid-template-columns:1fr}.field{display:flex;flex-direction:column;gap:7px}.field-full{margin-top:16px}.field-span-3{grid-column:1/-1}label{font-weight:700;color:#1e3a5f;font-size:13px}input,select,textarea{width:100%;border:1px solid #cbd8ea;border-radius:12px;padding:12px 13px;font:inherit;background:#fff;color:var(--text)}input:focus,select:focus,textarea:focus{outline:3px solid rgba(23,74,135,.14);border-color:var(--primary)}.btn{border:none;border-radius:12px;padding:11px 16px;font-weight:800;cursor:pointer;transition:.15s}.btn:disabled{opacity:.6;cursor:not-allowed}.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary2)}.btn-secondary{background:#edf2f7;color:#1f3b5d;border:1px solid #d6e1ef}.btn-danger{background:#fee2e2;color:#991b1b}.btn-block{width:100%}.btn-small{padding:8px 11px;border-radius:10px;font-size:13px}.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.split-actions{justify-content:space-between}.toolbar{margin:14px 0}.message{border-radius:14px;padding:12px 14px;margin:12px 0;font-weight:700}.message.error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}.message.success{background:#ecfdf5;color:#166534;border:1px solid #bbf7d0}.message.info{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}.wizard-headline{display:flex;align-items:center;gap:12px}.step-badge{display:inline-flex;background:#dbeafe;color:#173b70;border-radius:999px;padding:7px 11px;font-weight:800;font-size:12px}.progress-bar{height:9px;background:#e5edf7;border-radius:999px;overflow:hidden;margin-top:16px}.progress-fill{height:100%;background:var(--primary);border-radius:999px}.quick-buttons{display:flex;gap:7px;flex-wrap:wrap;margin-top:5px}.quick-btn{border:1px solid #cbd8ea;background:#fff;border-radius:999px;padding:6px 10px;cursor:pointer}.quick-btn.is-active{background:#dbeafe;color:#174a87;border-color:#174a87}.summary-box{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:14px 0}.summary-item{background:#f8fbff;border:1px solid #dce8f6;border-radius:14px;padding:12px}.summary-item .label{display:block;color:var(--muted);font-size:12px}.summary-item .value{display:block;font-weight:900;margin-top:3px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px;background:#fff}.attendance-table{width:100%;border-collapse:collapse;min-width:980px}.attendance-table th{background:#f5f8fc;color:#173b70;text-align:left;font-size:13px;padding:13px;border-bottom:1px solid var(--line)}.attendance-table td{padding:13px;border-bottom:1px solid #edf2f7;vertical-align:top}.attendance-table tr.is-selected{background:#eff6ff}.operator-name{font-weight:900}.operator-meta,.muted{color:var(--muted);font-size:13px}.table-input,.table-select{min-width:130px}.extras-toggle{border:1px dashed #cbd8ea;background:#f8fbff;color:#53657c;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;white-space:nowrap}.extras-toggle.has-values{background:#eaf3ff;color:#174a87;border-style:solid}.extras-panel,.works-panel{margin-top:10px;padding:12px;border:1px solid #dce8f6;border-radius:14px;background:#f8fbff;display:grid;gap:10px}.works-panel.always-open{margin-top:0}.extras-field{display:grid;gap:5px}.work-check{display:flex;align-items:center;gap:9px;font-weight:700;color:#243b53;background:#fff;border:1px solid #e5edf7;border-radius:12px;padding:9px}.work-check input{width:auto}.works-preview{font-size:12px;color:var(--muted);margin-top:7px;max-width:220px}.final-box{display:inline-grid;gap:2px;background:#eff6ff;border:1px solid #dbeafe;color:#173b70;padding:9px 12px;border-radius:14px}.final-main{font-weight:900}.final-sub{font-size:12px;color:#64748b}.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}.modal-card{width:min(980px,96vw);max-height:92vh;overflow:auto;background:#fff;border-radius:22px;padding:22px;box-shadow:0 30px 80px rgba(15,23,42,.25)}.confirm-summary{display:grid;gap:12px}.confirm-card{border:1px solid #dce8f6;background:#f8fbff;border-radius:16px;padding:14px}.confirm-total{background:#eef6ff;border-color:#bad6ff}.confirm-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}.confirm-kpi{background:#fff;border-radius:12px;padding:10px;border:1px solid #e7eef8}.confirm-kpi-label{display:block;color:var(--muted);font-size:12px}.confirm-kpi-value{font-weight:900}.admin-subtitle{margin:22px 0 10px;color:#173b70}.badge-active,.badge-inactive{border-radius:999px;padding:6px 9px;font-size:12px;font-weight:900}.badge-active{background:#dcfce7;color:#166534}.badge-inactive{background:#fee2e2;color:#991b1b}.table-actions{display:flex;gap:8px;flex-wrap:wrap}@media(max-width:860px){.topbar{align-items:flex-start}.topbar-menu{justify-content:flex-end}.page{padding:14px}.form-grid,.form-grid-3{grid-template-columns:1fr}.rows-top,.modal-header{flex-direction:column}.attendance-table{min-width:0}.attendance-table thead{display:none}.attendance-table tr{display:block;padding:10px;border-bottom:1px solid var(--line)}.attendance-table td{display:flex;justify-content:space-between;gap:14px;border-bottom:none;padding:9px}.attendance-table td::before{content:attr(data-label);font-weight:900;color:#173b70}.table-input,.table-select{min-width:160px}.topbar-left{align-items:flex-start}.app-subtitle{display:none}}
 
 .work-check-text{display:grid;gap:2px}.work-check-text strong{font-size:13px;color:#243b53}.work-check-text em{font-style:normal;color:#64748b;font-size:12px}.works-panel{max-height:320px;overflow:auto}
@@ -399,5 +398,53 @@ textarea{
   .planned-calendar-edit,
   .planned-calendar-delete{
     width:100%!important;
+  }
+}
+
+
+/* ===== PATCH CONTROLLO ORE OPERATORE GIORNO 2026-07-07 ===== */
+.operator-hours-warning{
+  margin-top:9px;
+  border:1px solid #fde68a;
+  background:#fffbeb;
+  color:#713f12;
+  border-radius:12px;
+  padding:9px 10px;
+  font-size:12px;
+  line-height:1.35;
+  display:grid;
+  gap:5px;
+  max-width:360px;
+}
+.operator-hours-warning.is-over{
+  border-color:#fecaca;
+  background:#fef2f2;
+  color:#7f1d1d;
+}
+.operator-hours-warning-title{
+  font-weight:900;
+  letter-spacing:.03em;
+}
+.operator-hours-warning ul{
+  margin:0;
+  padding-left:16px;
+}
+.operator-hours-warning-footer{
+  border-radius:9px;
+  padding:5px 7px;
+  font-weight:900;
+}
+.operator-hours-warning-footer.is-ok{
+  background:#ecfdf5;
+  color:#166534;
+}
+.operator-hours-warning-footer.is-danger{
+  background:#fee2e2;
+  color:#991b1b;
+}
+@media(max-width:980px){
+  .operator-hours-warning{
+    max-width:none;
+    font-size:13px;
   }
 }
