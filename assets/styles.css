@@ -567,3 +567,48 @@ textarea{
 @media(min-width:861px){
   .topbar-menu{position:static!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;transform:none!important}
 }
+
+
+/* ===== MOBILE RESPONSIVE HARD FIX V2 2026-07-07 ===== */
+.mobile-menu-backdrop{display:none}
+.hamburger{border:1px solid #cfe0f3!important;background:#fff!important;color:#143763!important;border-radius:14px!important;width:46px!important;height:42px!important;align-items:center!important;justify-content:center!important;gap:4px!important;flex-direction:column!important;box-shadow:0 10px 24px rgba(15,23,42,.08)!important;cursor:pointer!important;transition:.18s ease!important;padding:0!important;line-height:1!important}
+.hamburger-line{display:block!important;width:20px!important;height:2px!important;border-radius:99px!important;background:#143763!important;transition:transform .18s ease,opacity .18s ease!important}
+.hamburger.is-open .hamburger-line:nth-child(1){transform:translateY(6px) rotate(45deg)!important}
+.hamburger.is-open .hamburger-line:nth-child(2){opacity:0!important}
+.hamburger.is-open .hamburger-line:nth-child(3){transform:translateY(-6px) rotate(-45deg)!important}
+@media(max-width:860px){
+  html,body{max-width:100%;overflow-x:hidden!important}
+  body.mobile-menu-open{overflow:hidden!important}
+  .topbar{position:sticky!important;top:0!important;z-index:300!important;align-items:center!important;padding:12px 14px!important;min-height:72px!important;gap:10px!important}
+  .topbar-left{min-width:0!important;gap:10px!important;align-items:center!important;flex:1 1 auto!important}
+  .brand-mark{width:38px!important;height:38px!important;border-radius:12px!important;font-size:12px!important;flex:0 0 auto!important}
+  .app-title{font-size:16px!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:calc(100vw - 126px)!important}
+  .app-subtitle{display:block!important;font-size:11px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:calc(100vw - 126px)!important}
+  .topbar-right{margin-left:auto!important;position:relative!important;align-items:center!important;flex:0 0 auto!important}
+  .hamburger{display:flex!important;position:relative!important;z-index:330!important;flex:0 0 auto!important}
+  .topbar-menu{position:fixed!important;top:76px!important;left:12px!important;right:12px!important;z-index:320!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;padding:14px!important;background:rgba(255,255,255,.99)!important;border:1px solid #d7e6f8!important;border-radius:20px!important;box-shadow:0 22px 60px rgba(15,23,42,.24)!important;max-height:calc(100vh - 96px)!important;overflow:auto!important;transform:translateY(-8px) scale(.98)!important;opacity:0!important;pointer-events:none!important;visibility:hidden!important;transition:opacity .18s ease,transform .18s ease,visibility .18s ease!important}
+  .topbar-menu.is-open{opacity:1!important;pointer-events:auto!important;visibility:visible!important;transform:translateY(0) scale(1)!important}
+  .topbar-menu .btn,.topbar-menu .user-badge{width:100%!important;min-height:48px!important;justify-content:center!important;text-align:center!important;border-radius:14px!important;font-size:14px!important;display:flex!important;align-items:center!important}
+  .topbar-menu .hidden{display:none!important}
+  .topbar-menu .user-badge{background:#f6faff!important;border:1px solid #dceafe!important;color:#173b70!important;padding:10px 12px!important;word-break:break-word!important;min-height:auto!important}
+  .mobile-menu-backdrop{display:block!important;position:fixed!important;inset:0!important;z-index:310!important;background:rgba(15,23,42,.28)!important;backdrop-filter:blur(2px)!important}
+  .mobile-menu-backdrop.hidden{display:none!important}
+  .page{width:100%!important;max-width:100%!important;padding:10px!important;margin:0!important}
+  .card{width:100%!important;max-width:100%!important;padding:16px!important;border-radius:16px!important;margin-bottom:14px!important}
+  .form-grid,.form-grid-3,.setup-step-grid,.home-actions,.choice-grid,.stats-grid,.summary-grid{display:grid!important;grid-template-columns:1fr!important;gap:12px!important}
+  .field,.actions,.wizard-nav,.modal-actions,.table-actions{width:100%!important;max-width:100%!important}
+  .actions,.wizard-nav,.modal-actions,.table-actions{display:flex!important;flex-direction:column!important;gap:10px!important;align-items:stretch!important}
+  .btn:not(.hamburger),button:not(.hamburger),.field input,.field select,.field textarea,input,select,textarea{max-width:100%!important}
+  .btn:not(.hamburger),.actions .btn,.wizard-nav .btn,.modal-actions .btn,.table-actions .btn{width:100%!important;min-height:48px!important;white-space:normal!important}
+  input,select,textarea{font-size:16px!important;min-height:48px!important}
+  .quick-actions,.quick-row,.quick-buttons{display:flex!important;flex-wrap:wrap!important;gap:8px!important}
+  .quick-btn{flex:1 1 calc(50% - 8px)!important;min-height:42px!important}
+  .wizard-header,.rows-top,.card-header,.modal-header{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:12px!important}
+  .wizard-title-wrap h2,.card-header h2{font-size:20px!important;line-height:1.15!important}
+  .attendance-table,.data-table,table{width:100%!important;max-width:100%!important}
+  .table-wrap{width:100%!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}
+}
+@media(min-width:861px){
+  .topbar-menu{position:static!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;transform:none!important}
+  .mobile-menu-backdrop{display:none!important}
+}
