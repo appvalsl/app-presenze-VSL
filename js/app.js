@@ -103,8 +103,8 @@ const InserimentoPresenzeApp = (() => {
       workDate: "",
       startTime: "",
       endTime: "",
-      lunchMin: "0",
-      snackMin: "0",
+      lunchMin: "60",
+      snackMin: "10",
       stopsMin: "0",
       stopsNote: "",
       globalEventoMin: "0",
@@ -1841,8 +1841,8 @@ async function handleRowTableInteraction(event) {
     if (dom.workDate) dom.workDate.value = state.setup.workDate || "";
     if (dom.startTime) dom.startTime.value = state.setup.startTime || "";
     if (dom.endTime) dom.endTime.value = state.setup.endTime || "";
-    if (dom.lunchMin) dom.lunchMin.value = state.setup.lunchMin || "0";
-    if (dom.snackMin) dom.snackMin.value = state.setup.snackMin || "0";
+    if (dom.lunchMin) dom.lunchMin.value = state.setup.lunchMin || "60";
+    if (dom.snackMin) dom.snackMin.value = state.setup.snackMin || "10";
     if (dom.stopsMin) dom.stopsMin.value = state.setup.stopsMin || "0";
     if (dom.stopsNote) dom.stopsNote.value = state.setup.stopsNote || "";
     if (dom.globalEventoMin) dom.globalEventoMin.value = state.setup.globalEventoMin || "0";
@@ -1899,7 +1899,7 @@ async function handleRowTableInteraction(event) {
       ["Inizio", state.setup.startTime || "-"],
       ["Fine", state.setup.endTime || "-"],
       ["Pausa pranzo", toNonNegativeInt(state.setup.lunchMin) + " min"],
-      ["Pausa snack", toNonNegativeInt(state.setup.snackMin) + " min"],
+      ["Pausa colazione", toNonNegativeInt(state.setup.snackMin) + " min"],
       ["Fermi", toNonNegativeInt(state.setup.stopsMin) + " min"],
       ["Nota fermi", state.setup.stopsNote || "-"],
       ["Evento globale", toNonNegativeInt(state.setup.globalEventoMin) + " min"],
@@ -1934,7 +1934,7 @@ async function handleRowTableInteraction(event) {
       ["Inizio", state.setup.startTime || "-"],
       ["Fine", state.setup.endTime || "-"],
       ["Ore lavorate base", formatMinutes(state.setup.baseWorkMinutes || 0)],
-      ["Snack", toNonNegativeInt(state.setup.snackMin) + " min"],
+      ["Colazione", toNonNegativeInt(state.setup.snackMin) + " min"],
       ["Fermi", toNonNegativeInt(state.setup.stopsMin) + " min"],
       ["Evento globale", toNonNegativeInt(state.setup.globalEventoMin) + " min"],
       ["Assemblea globale", toNonNegativeInt(state.setup.globalAssembleaMin) + " min"],
@@ -3424,8 +3424,8 @@ async function handleRowTableInteraction(event) {
       workDate: "",
       startTime: "",
       endTime: "",
-      lunchMin: "0",
-      snackMin: "0",
+      lunchMin: "60",
+      snackMin: "10",
       stopsMin: "0",
       stopsNote: "",
       globalEventoMin: "0",
@@ -3478,6 +3478,8 @@ async function handleRowTableInteraction(event) {
         state.setup = {
           ...state.setup,
           ...parsed.setup,
+          lunchMin: parsed.setup.lunchMin === undefined ? "60" : String(parsed.setup.lunchMin),
+          snackMin: parsed.setup.snackMin === undefined ? "10" : String(parsed.setup.snackMin),
           globalEventoMin: parsed.setup.globalEventoMin === undefined ? "0" : String(parsed.setup.globalEventoMin),
           globalAssembleaMin: parsed.setup.globalAssembleaMin === undefined ? "0" : String(parsed.setup.globalAssembleaMin),
           globalScioperoMin: parsed.setup.globalScioperoMin === undefined ? "0" : String(parsed.setup.globalScioperoMin),
@@ -3538,8 +3540,8 @@ async function handleRowTableInteraction(event) {
       workDate: "",
       startTime: "",
       endTime: "",
-      lunchMin: "0",
-      snackMin: "0",
+      lunchMin: "60",
+      snackMin: "10",
       stopsMin: "0",
       stopsNote: "",
       globalEventoMin: "0",
