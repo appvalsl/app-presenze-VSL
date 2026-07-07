@@ -92,7 +92,7 @@
               <div class="wizard-top">
                 <div class="wizard-headline">
                   <div class="step-badge-wrap">
-                    <span id="stepBadge" class="step-badge">Step 1 di 3</span>
+                    <span id="stepBadge" class="step-badge">Step 1 di 5</span>
                   </div>
                   <div class="wizard-title-wrap">
                     <h2>Setup giornata</h2>
@@ -131,11 +131,10 @@
               
               <div id="step2" class="wizard-step hidden setup-step2-friendly" data-step="2">
                 <div class="setup-step-title">
-                  <span class="step-badge">Step 2 di 3</span>
-                  <h3>Parametri della giornata</h3>
-                  <p>Imposta solo le informazioni essenziali: data, orari e pause. In basso trovi il riepilogo automatico.</p>
+                  <span class="step-badge">Step 2 di 5</span>
+                  <h3>Data e orario di lavoro</h3>
+                  <p>Prima imposta solo il giorno e l'orario della giornata. Poi vai avanti.</p>
                 </div>
-
                 <div class="setup-block setup-block-primary">
                   <div class="setup-block-head">
                     <div class="setup-block-number">1</div>
@@ -170,7 +169,13 @@
                     </div>
                   </div>
                 </div>
-
+              </div>
+              <div id="step3" class="wizard-step hidden setup-step2-friendly" data-step="3">
+                <div class="setup-step-title">
+                  <span class="step-badge">Step 3 di 5</span>
+                  <h3>Pause e fermi</h3>
+                  <p>Ora inserisci soltanto pause, fermi produzione ed eventuali note.</p>
+                </div>
                 <div class="setup-block">
                   <div class="setup-block-head">
                     <div class="setup-block-number">2</div>
@@ -217,6 +222,13 @@
                     </div>
                   </div>
                 </div>
+              </div>
+              <div id="step4" class="wizard-step hidden setup-step2-friendly" data-step="4">
+                <div class="setup-step-title">
+                  <span class="step-badge">Step 4 di 5</span>
+                  <h3>Extra globali</h3>
+                  <p>Imposta i minuti standard da applicare a tutti gli operatori caricati.</p>
+                </div>
                 <div class="setup-block setup-block-global-extras">
                   <div class="setup-block-head">
                     <div class="setup-block-number">3</div>
@@ -247,8 +259,8 @@
                   </div>
                 </div>
               </div>
-              <div id="step3" class="wizard-step hidden" data-step="3">
-                <h3>Step 3 - Riepilogo setup</h3>
+              <div id="step5" class="wizard-step hidden" data-step="5">
+                <h3>Step 5 - Riepilogo setup</h3>
                 <div id="setupSummaryBox" class="summary-box"></div>
                 <div class="actions split-actions">
                   <div></div>
