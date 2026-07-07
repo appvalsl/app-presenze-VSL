@@ -116,6 +116,11 @@ const InserimentoPresenzeApp = (() => {
       baseNetMinutes: 0
     },
     rows: [],
+    attendanceAvailability: {
+      workDate: "",
+      loading: false,
+      byRowKey: {}
+    },
     operatorsAdmin: {
       searchText: "",
       lineFilter: "",
@@ -715,6 +720,9 @@ function handleResetRows() {
         if (state.rows.length) {
           recalcAllRows();
           renderRowsView();
+          if (element === dom.workDate || element === dom.lineSelect) {
+            scheduleAttendanceAvailabilityWarnings();
+          }
         }
         saveState();
       });
@@ -1422,7 +1430,7 @@ function handleResetRows() {
     };
   }
 
-  function handleAddOperator() {
+  async function handleAddOperator() {
     hideBox(dom.rowsErrors);
     hideBox(dom.globalMessage);
 
@@ -1468,6 +1476,7 @@ function handleResetRows() {
     state.activeMainView = "attendance";
 
     saveState();
+    await refreshAttendanceAvailabilityWarnings();
     renderRowsView();
 
     if (dom.addOperatorSearch) {
@@ -1497,6 +1506,147 @@ function handleResetRows() {
 
       return rowName && operatorName && rowName === operatorName;
     });
+  }
+
+
+  function attendanceAvailabilityRowKey(row) {
+    if (!row) return "";
+    if (row.operator_id !== undefined && row.operator_id !== null && row.operator_id !== "") {
+      return "OPID:" + String(row.operator_id);
+    }
+    if (row.id_operatore) {
+      return "CODE:" + normalizeText(row.id_operatore);
+    }
+    const fullName = [row.cognome, row.nome].filter(Boolean).join(" ");
+    return "NAME:" + normalizeText(fullName);
+  }
+
+  function isSameAttendanceOperator(currentRow, savedRow) {
+    if (!currentRow || !savedRow) return false;
+    if (
+      currentRow.operator_id !== undefined && currentRow.operator_id !== null && currentRow.operator_id !== "" &&
+      savedRow.operator_id !== undefined && savedRow.operator_id !== null && savedRow.operator_id !== ""
+    ) {
+      return String(currentRow.operator_id) === String(savedRow.operator_id);
+    }
+    if (currentRow.id_operatore && savedRow.id_operatore) {
+      return normalizeText(currentRow.id_operatore) === normalizeText(savedRow.id_operatore);
+    }
+    const currentName = normalizeText([currentRow.cognome, currentRow.nome].filter(Boolean).join(" "));
+    const savedName = normalizeText([savedRow.cognome, savedRow.nome].filter(Boolean).join(" "));
+    return Boolean(currentName && savedName && currentName === savedName);
+  }
+
+  function formatDecimalHours(value) {
+    const n = Number(value) || 0;
+    return n.toFixed(2).replace(".00", "");
+  }
+
+  function getAttendanceAvailabilityWarning(row) {
+    if (!row || !state.attendanceAvailability || !state.attendanceAvailability.byRowKey) return null;
+    return state.attendanceAvailability.byRowKey[attendanceAvailabilityRowKey(row)] || null;
+  }
+
+  function renderAttendanceAvailabilityWarning(row) {
+    const warning = getAttendanceAvailabilityWarning(row);
+    if (!warning || !warning.totalHours || warning.totalHours <= 0) return "";
+    const standardHours = Number(row.ore_standard) || Number(row.base_ore_standard) || warning.standardHours || 0;
+    const residual = Math.max(standardHours - warning.totalHours, 0);
+    const currentHours = (Number(row.work_min) || 0) / 60;
+    const projectedTotal = warning.totalHours + currentHours;
+    const over = standardHours > 0 && projectedTotal > standardHours;
+    const rows = warning.groups.map((item) => {
+      const station = item.postazione ? " - " + item.postazione : "";
+      return `<li><strong>${escapeHtml(item.line)}</strong>${escapeHtml(station)}: ${escapeHtml(formatDecimalHours(item.hours))}h</li>`;
+    }).join("");
+    const dateText = state.setup.workDate || warning.workDate || "la data selezionata";
+    return `
+      <div class="operator-hours-warning ${over ? "is-over" : ""}">
+        <div class="operator-hours-warning-title">ATTENZIONE</div>
+        <div>Il giorno <strong>${escapeHtml(dateText)}</strong> sono già state inserite <strong>${escapeHtml(formatDecimalHours(warning.totalHours))}h</strong> per questo operatore.</div>
+        <ul>${rows}</ul>
+        <div>Ore standard operatore: <strong>${escapeHtml(formatDecimalHours(standardHours))}h</strong>.</div>
+        <div>Nella tua linea non può aver lavorato più di <strong>${escapeHtml(formatDecimalHours(residual))}h</strong>.</div>
+        <div class="operator-hours-warning-footer ${over ? "is-danger" : "is-ok"}">
+          ${over
+            ? `Con le ore inserite qui arriveresti a ${escapeHtml(formatDecimalHours(projectedTotal))}h totali, superando lo standard.`
+            : `Totale previsto dopo questa riga: ${escapeHtml(formatDecimalHours(projectedTotal))}h.`}
+        </div>
+      </div>
+    `;
+  }
+
+  let attendanceAvailabilityTimer = null;
+  function scheduleAttendanceAvailabilityWarnings() {
+    if (attendanceAvailabilityTimer) clearTimeout(attendanceAvailabilityTimer);
+    attendanceAvailabilityTimer = setTimeout(() => {
+      refreshAttendanceAvailabilityWarnings().then(() => renderRowsView()).catch((error) => {
+        console.warn("Controllo ore già inserite non riuscito:", error);
+      });
+    }, 250);
+  }
+
+  async function refreshAttendanceAvailabilityWarnings() {
+    if (!client || !Array.isArray(state.rows) || !state.rows.length || !state.setup.workDate) {
+      state.attendanceAvailability = { workDate: state.setup.workDate || "", loading: false, byRowKey: {} };
+      return;
+    }
+    const workDate = state.setup.workDate;
+    state.attendanceAvailability = { workDate, loading: true, byRowKey: {} };
+    try {
+      const sessionsResponse = await client
+        .from("attendance_sessions")
+        .select("id,work_date,line_name")
+        .eq("work_date", workDate);
+      if (sessionsResponse.error) throw sessionsResponse.error;
+      const sessions = Array.isArray(sessionsResponse.data) ? sessionsResponse.data : [];
+      const sessionIds = sessions.map((session) => session.id).filter(Boolean);
+      if (!sessionIds.length) {
+        state.attendanceAvailability = { workDate, loading: false, byRowKey: {} };
+        return;
+      }
+      const sessionById = new Map(sessions.map((session) => [String(session.id), session]));
+      const rowsResponse = await client
+        .from("attendance_rows")
+        .select("id,attendance_session_id,operator_id,cognome,nome,id_operatore,line_day,postazione,work_min,ore_standard")
+        .in("attendance_session_id", sessionIds);
+      if (rowsResponse.error) throw rowsResponse.error;
+      const savedRows = Array.isArray(rowsResponse.data) ? rowsResponse.data : [];
+      const byRowKey = {};
+      state.rows.forEach((currentRow) => {
+        const key = attendanceAvailabilityRowKey(currentRow);
+        if (!key) return;
+        const matches = savedRows.filter((savedRow) => isSameAttendanceOperator(currentRow, savedRow));
+        if (!matches.length) return;
+        const groupsMap = new Map();
+        let totalMinutes = 0;
+        matches.forEach((savedRow) => {
+          const session = sessionById.get(String(savedRow.attendance_session_id)) || {};
+          const line = savedRow.line_day || session.line_name || "Linea non indicata";
+          const postazione = savedRow.postazione || "";
+          const groupKey = line + "||" + postazione;
+          const minutes = Number(savedRow.work_min) || 0;
+          totalMinutes += minutes;
+          if (!groupsMap.has(groupKey)) {
+            groupsMap.set(groupKey, { line, postazione, minutes: 0, hours: 0 });
+          }
+          const group = groupsMap.get(groupKey);
+          group.minutes += minutes;
+          group.hours = group.minutes / 60;
+        });
+        byRowKey[key] = {
+          workDate,
+          totalMinutes,
+          totalHours: totalMinutes / 60,
+          standardHours: Number(currentRow.ore_standard) || Number(currentRow.base_ore_standard) || 0,
+          groups: Array.from(groupsMap.values()).sort((a, b) => String(a.line).localeCompare(String(b.line), "it"))
+        };
+      });
+      state.attendanceAvailability = { workDate, loading: false, byRowKey };
+    } catch (error) {
+      console.warn("Errore controllo ore già inserite:", error);
+      state.attendanceAvailability = { workDate, loading: false, byRowKey: {} };
+    }
   }
 
 
@@ -2008,6 +2158,7 @@ async function handleRowTableInteraction(event) {
           <tr>
             <td data-label="Operatore" class="cell-operator">
               <div class="operator-name">${escapeHtml(operatorLabel)}</div>
+              ${renderAttendanceAvailabilityWarning(row)}
             </td>
 
 
