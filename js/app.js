@@ -110,6 +110,7 @@ const InserimentoPresenzeApp = (() => {
       globalEventoMin: "0",
       globalAssembleaMin: "0",
       globalScioperoMin: "0",
+      globalFlessibilitaHours: "0",
       dayDurationMinutes: 0,
       baseWorkMinutes: 0,
       baseNetMinutes: 0
@@ -194,6 +195,7 @@ const InserimentoPresenzeApp = (() => {
     dom.globalEventoMin = document.getElementById("globalEventoMin");
     dom.globalAssembleaMin = document.getElementById("globalAssembleaMin");
     dom.globalScioperoMin = document.getElementById("globalScioperoMin");
+    dom.globalFlessibilitaHours = document.getElementById("globalFlessibilitaHours");
 
     dom.setupSummaryBox = document.getElementById("setupSummaryBox");
 
@@ -721,7 +723,8 @@ function handleResetRows() {
     const globalExtraInputs = [
       dom.globalEventoMin,
       dom.globalAssembleaMin,
-      dom.globalScioperoMin
+      dom.globalScioperoMin,
+      dom.globalFlessibilitaHours
     ];
 
     globalExtraInputs.forEach((element) => {
@@ -1379,6 +1382,9 @@ function handleResetRows() {
     const globalEventoMin = toNonNegativeInt(state.setup.globalEventoMin);
     const globalAssembleaMin = toNonNegativeInt(state.setup.globalAssembleaMin);
     const globalScioperoMin = toNonNegativeInt(state.setup.globalScioperoMin);
+    const globalFlessibilitaHours = toNonNegativeNumber(state.setup.globalFlessibilitaHours);
+    const baseOreStandard = Number(operator.oreStandard) || 0;
+    const oreStandardGiorno = globalFlessibilitaHours > 0 ? globalFlessibilitaHours : baseOreStandard;
     const finalMin = calculateFinalMinutes(
       workMin,
       Number(state.setup.snackMin) || 0,
@@ -1399,7 +1405,10 @@ function handleResetRows() {
       line_orig: operator.lineaProduzione,
       line_day: lineName,
       postazione: initialStation,
-      ore_standard: Number(operator.oreStandard) || 0,
+      ore_standard: oreStandardGiorno,
+      base_ore_standard: baseOreStandard,
+      flessibilita_hours: globalFlessibilitaHours,
+      is_duplicate: false,
       work_min: workMin,
       evento_min: globalEventoMin,
       assemblea_min: globalAssembleaMin,
@@ -1512,6 +1521,9 @@ async function handleRowTableInteraction(event) {
     const newRow = {
       ...rowToClone,
       ore_standard: 0,
+      base_ore_standard: 0,
+      flessibilita_hours: 0,
+      is_duplicate: true,
       work_min: 0,
       evento_min: 0,
       assemblea_min: 0,
@@ -1629,6 +1641,20 @@ async function handleRowTableInteraction(event) {
 
   if (field === "sciopero_min") {
     row.sciopero_min = toNonNegativeInt(target.value);
+  }
+
+  if (field === "flessibilita_hours") {
+    row.flessibilita_hours = toNonNegativeNumber(target.value);
+    const isDuplicate = Boolean(row.is_duplicate) || Number(row.ore_standard) === 0 && Number(row.base_ore_standard) === 0;
+    if (isDuplicate) {
+      row.ore_standard = 0;
+      row.flessibilita_hours = 0;
+      row.is_duplicate = true;
+    } else {
+      const baseOreStandard = Number(row.base_ore_standard) || Number(row.ore_standard) || 0;
+      row.base_ore_standard = baseOreStandard;
+      row.ore_standard = row.flessibilita_hours > 0 ? row.flessibilita_hours : baseOreStandard;
+    }
   }
 
   row.final_min = calculateFinalMinutes(
@@ -1822,6 +1848,7 @@ async function handleRowTableInteraction(event) {
     if (dom.globalEventoMin) dom.globalEventoMin.value = state.setup.globalEventoMin || "0";
     if (dom.globalAssembleaMin) dom.globalAssembleaMin.value = state.setup.globalAssembleaMin || "0";
     if (dom.globalScioperoMin) dom.globalScioperoMin.value = state.setup.globalScioperoMin || "0";
+    if (dom.globalFlessibilitaHours) dom.globalFlessibilitaHours.value = state.setup.globalFlessibilitaHours || "0";
 
     syncQuickButtons();
   }
@@ -1878,6 +1905,7 @@ async function handleRowTableInteraction(event) {
       ["Evento globale", toNonNegativeInt(state.setup.globalEventoMin) + " min"],
       ["Assemblea globale", toNonNegativeInt(state.setup.globalAssembleaMin) + " min"],
       ["Sciopero globale", toNonNegativeInt(state.setup.globalScioperoMin) + " min"],
+      ["Flessibilità globale", toNonNegativeNumber(state.setup.globalFlessibilitaHours) + " h"],
       ["Durata giornata", formatMinutes(state.setup.dayDurationMinutes || 0)],
       ["Ore lavorate base", formatMinutes(state.setup.baseWorkMinutes || 0)],
       ["Tempo netto base", formatMinutes(state.setup.baseNetMinutes || 0)]
@@ -1911,6 +1939,7 @@ async function handleRowTableInteraction(event) {
       ["Evento globale", toNonNegativeInt(state.setup.globalEventoMin) + " min"],
       ["Assemblea globale", toNonNegativeInt(state.setup.globalAssembleaMin) + " min"],
       ["Sciopero globale", toNonNegativeInt(state.setup.globalScioperoMin) + " min"],
+      ["Flessibilità globale", toNonNegativeNumber(state.setup.globalFlessibilitaHours) + " h"],
       ["Tempo netto base", formatMinutes(state.setup.baseNetMinutes || 0)]
     ];
 
@@ -2050,6 +2079,22 @@ async function handleRowTableInteraction(event) {
                       data-field="sciopero_min"
                     >
                   </div>
+                  <div class="extras-field">
+                    <label>Flessibilità ore</label>
+                    <input
+                      class="table-input"
+                      type="number"
+                      min="0"
+                      step="0.25"
+                      inputmode="decimal"
+                      value="${escapeAttribute(String(Number(row.flessibilita_hours) || 0))}"
+                      data-row-index="${index}"
+                      data-field="flessibilita_hours"
+                      ${Boolean(row.is_duplicate) ? "readonly disabled" : ""}
+                    >
+                    <div class="field-note">Se maggiore di 0 sostituisce le ore standard della giornata.</div>
+                    ${Boolean(row.is_duplicate) ? '<div class="duplicate-note">Riga duplicata: ore standard bloccate a 0.</div>' : ''}
+                  </div>
                 </div>
               `
                   : ""
@@ -2086,6 +2131,7 @@ async function handleRowTableInteraction(event) {
               <div class="final-box">
                 <span class="final-main">${escapeHtml(String(row.final_min))} min</span>
                 <span class="final-sub">${escapeHtml(finalHours)} h</span>
+                <span class="final-sub">Std: ${escapeHtml(String(Number(row.ore_standard) || 0))} h</span>
               </div>
             </td>
 
@@ -3149,6 +3195,7 @@ async function handleRowTableInteraction(event) {
     state.setup.globalEventoMin = String(toNonNegativeInt(dom.globalEventoMin ? dom.globalEventoMin.value : 0));
     state.setup.globalAssembleaMin = String(toNonNegativeInt(dom.globalAssembleaMin ? dom.globalAssembleaMin.value : 0));
     state.setup.globalScioperoMin = String(toNonNegativeInt(dom.globalScioperoMin ? dom.globalScioperoMin.value : 0));
+    state.setup.globalFlessibilitaHours = String(toNonNegativeNumber(dom.globalFlessibilitaHours ? dom.globalFlessibilitaHours.value : 0));
 
     const dayMinutes = minutesBetweenTimes(
       state.setup.startTime,
@@ -3289,14 +3336,23 @@ async function handleRowTableInteraction(event) {
     const globalEventoMin = toNonNegativeInt(state.setup.globalEventoMin);
     const globalAssembleaMin = toNonNegativeInt(state.setup.globalAssembleaMin);
     const globalScioperoMin = toNonNegativeInt(state.setup.globalScioperoMin);
+    const globalFlessibilitaHours = toNonNegativeNumber(state.setup.globalFlessibilitaHours);
+
     state.rows = state.rows.map((row) => {
+      const isDuplicate = Boolean(row.is_duplicate) || (Number(row.ore_standard) === 0 && Number(row.base_ore_standard) === 0);
+      const baseOreStandard = Number(row.base_ore_standard) || Number(row.ore_standard) || 0;
       const nextRow = {
         ...row,
         evento_min: globalEventoMin,
         assemblea_min: globalAssembleaMin,
         sciopero_min: globalScioperoMin,
+        base_ore_standard: isDuplicate ? 0 : baseOreStandard,
+        flessibilita_hours: isDuplicate ? 0 : globalFlessibilitaHours,
+        is_duplicate: isDuplicate,
+        ore_standard: isDuplicate ? 0 : (globalFlessibilitaHours > 0 ? globalFlessibilitaHours : baseOreStandard),
         dirty: true
       };
+
       nextRow.final_min = calculateFinalMinutes(
         Number(nextRow.work_min) || 0,
         Number(state.setup.snackMin) || 0,
@@ -3313,11 +3369,17 @@ async function handleRowTableInteraction(event) {
     state.rows = state.rows.map((row) => {
       const workMin =
         Number(row.work_min) || Number(state.setup.baseWorkMinutes) || 0;
+      const isDuplicate = Boolean(row.is_duplicate) || (Number(row.ore_standard) === 0 && Number(row.base_ore_standard) === 0);
+      const baseOreStandard = Number(row.base_ore_standard) || Number(row.ore_standard) || 0;
+      const flexHours = isDuplicate ? 0 : toNonNegativeNumber(row.flessibilita_hours);
 
       return {
         ...row,
         line_day: state.setup.lineName,
-        ore_standard: Number(row.ore_standard) || 0,
+        base_ore_standard: isDuplicate ? 0 : baseOreStandard,
+        flessibilita_hours: flexHours,
+        is_duplicate: isDuplicate,
+        ore_standard: isDuplicate ? 0 : (flexHours > 0 ? flexHours : baseOreStandard),
         final_min: calculateFinalMinutes(
           workMin,
           Number(state.setup.snackMin) || 0,
@@ -3369,6 +3431,7 @@ async function handleRowTableInteraction(event) {
       globalEventoMin: "0",
       globalAssembleaMin: "0",
       globalScioperoMin: "0",
+      globalFlessibilitaHours: "0",
       dayDurationMinutes: 0,
       baseWorkMinutes: 0,
       baseNetMinutes: 0
@@ -3417,7 +3480,8 @@ async function handleRowTableInteraction(event) {
           ...parsed.setup,
           globalEventoMin: parsed.setup.globalEventoMin === undefined ? "0" : String(parsed.setup.globalEventoMin),
           globalAssembleaMin: parsed.setup.globalAssembleaMin === undefined ? "0" : String(parsed.setup.globalAssembleaMin),
-          globalScioperoMin: parsed.setup.globalScioperoMin === undefined ? "0" : String(parsed.setup.globalScioperoMin)
+          globalScioperoMin: parsed.setup.globalScioperoMin === undefined ? "0" : String(parsed.setup.globalScioperoMin),
+          globalFlessibilitaHours: parsed.setup.globalFlessibilitaHours === undefined ? "0" : String(parsed.setup.globalFlessibilitaHours)
         };
       }
 
@@ -3436,6 +3500,9 @@ async function handleRowTableInteraction(event) {
             line_day: row.line_day || "",
             postazione: row.postazione || "",
             ore_standard: Number(row.ore_standard) || 0,
+            base_ore_standard: row.base_ore_standard === undefined ? Number(row.ore_standard) || 0 : Number(row.base_ore_standard) || 0,
+            flessibilita_hours: Number(row.flessibilita_hours) || 0,
+            is_duplicate: Boolean(row.is_duplicate),
             work_min: Number(row.work_min) || 0,
             evento_min: Number(row.evento_min) || 0,
             assemblea_min: Number(row.assemblea_min) || 0,
@@ -3478,6 +3545,7 @@ async function handleRowTableInteraction(event) {
       globalEventoMin: "0",
       globalAssembleaMin: "0",
       globalScioperoMin: "0",
+      globalFlessibilitaHours: "0",
       dayDurationMinutes: 0,
       baseWorkMinutes: 0,
       baseNetMinutes: 0
