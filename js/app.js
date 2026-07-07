@@ -4443,7 +4443,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function dateToIsoLocal(date){ return date.getFullYear()+"-"+pad2(date.getMonth()+1)+"-"+pad2(date.getDate()); }
   function currentMonthBounds(){ const now=new Date(); const first=new Date(now.getFullYear(), now.getMonth(), 1); const last=new Date(now.getFullYear(), now.getMonth()+1, 0); return { month: now.getFullYear()+"-"+pad2(now.getMonth()+1), from: dateToIsoLocal(first), to: dateToIsoLocal(last) }; }
   function applyCurrentMonthDefaults(force){ const bounds=currentMonthBounds(); const from=$("plannedAbsenceFromFilter"); const to=$("plannedAbsenceToFilter"); const month=$("plannedAbsenceMonth"); if(from && (force || !from.value)) from.value=bounds.from; if(to && (force || !to.value)) to.value=bounds.to; if(month && (force || !month.value)) month.value=bounds.month; }
-  function monthInfo(monthValue){ const raw=monthValue || currentMonth(); const parts=String(raw).split("-").map(Number); const year=parts[0] || new Date().getFullYear(); const monthIndex=(parts[1] ? parts[1]-1 : new Date().getMonth()); const first=new Date(year, monthIndex, 1); const last=new Date(year, monthIndex+1, 0); return { year, monthIndex, first, last, days:last.getDate(), leading:(first.getDay()+6)%7, month: year+"-"+pad2(monthIndex+1) }; }
   const state = { user:null, profile:null, isAdmin:false, isSuperUser:false, operators:[], absences:[], filtered:[] };
   function show(el,msg,type){ if(!el) return; el.textContent=msg; el.className="message "+(type||"info"); el.classList.remove("hidden"); }
   function hide(el){ if(!el) return; el.textContent=""; el.className="message hidden"; }
@@ -4538,30 +4537,75 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   function calendar(){
     const box=$("plannedAbsenceCalendar"); if(!box) return;
-    const info=monthInfo($("plannedAbsenceMonth")?.value||currentMonth());
-    const reason=$("plannedAbsenceReasonFilter")?.value||"";
-    const lineFilter=$("plannedAbsenceLineFilter")?.value||"";
-    const search=norm($("plannedAbsenceSearch")?.value||"");
-    const monthRows=(state.absences||[]).filter(a=>{
-      const sameMonth=String(a.absence_date||"").startsWith(info.month);
-      const lineOk=!lineFilter || a.line_name===lineFilter;
-      const reasonOk=!reason || a.reason===reason;
-      const searchOk=!search || norm([a.operator_name,a.line_name,a.reason,a.notes,a.created_by_email].join(" ")).includes(search);
-      return canUseLine(a.line_name) && sameMonth && lineOk && reasonOk && searchOk;
-    });
-    const byDay=new Map();
-    monthRows.forEach(r=>{ const d=r.absence_date||""; if(!byDay.has(d)) byDay.set(d,[]); byDay.get(d).push(r); });
-    const weekLabels=["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
-    const header=weekLabels.map(label=>`<div class="planned-calendar-weekday">${label}</div>`).join("");
-    const cells=[];
-    for(let i=0;i<info.leading;i++){ cells.push('<div class="planned-calendar-cell planned-calendar-cell-empty" aria-hidden="true"></div>'); }
-    for(let day=1; day<=info.days; day++){
-      const iso=info.month+"-"+pad2(day);
-      const items=(byDay.get(iso)||[]).slice().sort((a,b)=>String(a.line_name||"").localeCompare(String(b.line_name||""),"it") || String(a.operator_name||"").localeCompare(String(b.operator_name||""),"it"));
-      const detail=items.length ? `${lineSummaryHtml(items)}<div class="planned-calendar-entries">${items.map(i=>`<div class="planned-calendar-entry"><div class="planned-calendar-entry-main"><strong>${esc(i.operator_name||"-")}</strong><span>${esc(i.reason||"ALTRO")} · ${esc(num(i.hours,0).toFixed(2))}h · ${esc(num(i.fte_absence_programmabili,0).toFixed(2))} FTE</span></div><div class="planned-calendar-entry-line">${esc(i.line_name||"Senza linea")}</div>${canEdit(i)?`<div class="planned-calendar-entry-actions"><button class="btn btn-secondary btn-small" data-action="edit" data-id="${esc(i.id)}" type="button">Modifica</button><button class="btn btn-danger btn-small" data-action="delete" data-id="${esc(i.id)}" type="button">Elimina</button></div>`:""}</div>`).join("")}</div>` : `<div class="planned-calendar-no-absence">-</div>`;
-      cells.push(`<div class="planned-calendar-cell${items.length?" has-items":""}"><div class="planned-calendar-cell-head"><span class="planned-calendar-number">${day}</span><span class="planned-calendar-count">${items.length}</span></div>${detail}</div>`);
+    const selectedMonth=$("plannedAbsenceMonth")?.value||currentMonth();
+    const source=Array.isArray(state.filtered)?state.filtered:state.absences;
+    const rows=source
+      .filter(a=>canUseLine(a.line_name)&&String(a.absence_date||"").startsWith(selectedMonth))
+      .sort((a,b)=>String(a.absence_date||"").localeCompare(String(b.absence_date||"")) || String(a.line_name||"").localeCompare(String(b.line_name||""),"it") || String(a.operator_name||"").localeCompare(String(b.operator_name||""),"it"));
+
+    if(!rows.length){
+      box.innerHTML='<div class="planned-empty planned-empty-compact">Nessuna assenza trovata nel mese selezionato con i filtri attivi.</div>';
+      return;
     }
-    box.innerHTML=`<div class="planned-calendar-grid">${header}${cells.join("")}</div>`;
+
+    const byDay=new Map();
+    rows.forEach(row=>{
+      const date=row.absence_date||"Senza data";
+      if(!byDay.has(date)) byDay.set(date,[]);
+      byDay.get(date).push(row);
+    });
+
+    function dayName(iso){
+      const d=new Date(String(iso||"")+"T00:00:00");
+      if(Number.isNaN(d.getTime())) return "GIORNO";
+      return ["DOM","LUN","MAR","MER","GIO","VEN","SAB"][d.getDay()]||"GIORNO";
+    }
+
+    function compactLineSummary(items){
+      const byLine=new Map();
+      items.forEach(item=>{
+        const line=item.line_name||"Senza linea";
+        if(!byLine.has(line)) byLine.set(line,{count:0,hours:0,fte:0});
+        const group=byLine.get(line);
+        group.count+=1;
+        group.hours+=num(item.hours,0);
+        group.fte+=num(item.fte_absence_programmabili,0);
+      });
+      return `<div class="planned-list-line-summary">${[...byLine.entries()].sort((a,b)=>a[0].localeCompare(b[0],"it")).map(([line,g])=>`<span class="planned-list-line-pill"><strong>${esc(line)}</strong><em>${g.count} ass. · ${g.hours.toFixed(1)}h · ${g.fte.toFixed(2)} FTE</em></span>`).join("")}</div>`;
+    }
+
+    box.innerHTML=[...byDay.entries()].map(([date,items])=>{
+      const totalHours=items.reduce((sum,row)=>sum+num(row.hours,0),0);
+      const totalFte=items.reduce((sum,row)=>sum+num(row.fte_absence_programmabili,0),0);
+      return `<section class="planned-day planned-day-compact">
+        <div class="planned-day-head planned-day-head-compact">
+          <div class="planned-day-date-block">
+            <span class="planned-day-weekday">${esc(dayName(date))}</span>
+            <strong>${esc(formatDateIT(date))}</strong>
+          </div>
+          <div class="planned-day-kpis">
+            <span>${items.length} assenze</span>
+            <span>${totalHours.toFixed(1)}h</span>
+            <span>${totalFte.toFixed(2)} FTE</span>
+          </div>
+        </div>
+        ${compactLineSummary(items)}
+        <div class="planned-day-list-compact">
+          ${items.map(item=>`<article class="planned-absence-row-compact">
+            <div class="planned-absence-main">
+              <strong>${esc(item.operator_name||"-")}</strong>
+              <span>${esc(item.line_name||"Senza linea")}</span>
+            </div>
+            <div class="planned-absence-meta">
+              <span class="planned-reason-badge reason-${esc(item.reason||"ALTRO")}">${esc(item.reason||"ALTRO")}</span>
+              <span>${esc(num(item.hours,0).toFixed(2))}h</span>
+              <span>${esc(num(item.fte_absence_programmabili,0).toFixed(2))} FTE</span>
+            </div>
+            ${canEdit(item)?`<div class="planned-absence-actions"><button class="btn btn-secondary btn-small" data-action="edit" data-id="${esc(item.id)}" type="button">Modifica</button><button class="btn btn-danger btn-small" data-action="delete" data-id="${esc(item.id)}" type="button">Elimina</button></div>`:""}
+          </article>`).join("")}
+        </div>
+      </section>`;
+    }).join("");
   }
   function render(){ lines(); filters(); stats(); table(); calendar(); }
   function exportExcelXml(value){
