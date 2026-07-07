@@ -10,6 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./js/config.js"></script>
   <script src="./js/supabase-client.js"></script>
+  <script src="./js/mobile-menu.js" defer></script>
   <script src="./js/app.js" defer></script>
 </head>
 
@@ -25,7 +26,7 @@
       </div>
 
       <div class="topbar-right">
-        <button id="menuToggle" class="hamburger" type="button" aria-label="Apri menu" aria-controls="topbarMenu" aria-expanded="false">
+        <button id="menuToggle" class="hamburger" type="button" aria-label="Apri menu" aria-controls="topbarMenu" aria-expanded="false" data-mobile-menu-toggle="true">
           <span class="hamburger-line" aria-hidden="true"></span>
           <span class="hamburger-line" aria-hidden="true"></span>
           <span class="hamburger-line" aria-hidden="true"></span>
@@ -561,48 +562,5 @@
       </div>
     </div>
   </div>
-
-  <script>
-    /* MOBILE MENU HARD FIX 2026-07-07: independent from app.js */
-    (function(){
-      function byId(id){ return document.getElementById(id); }
-      function isMobile(){ return window.matchMedia && window.matchMedia('(max-width: 860px)').matches; }
-      function closeMenu(){
-        var menu=byId('topbarMenu'), btn=byId('menuToggle'), backdrop=byId('mobileMenuBackdrop');
-        if(menu) menu.classList.remove('is-open');
-        if(btn){ btn.classList.remove('is-open'); btn.setAttribute('aria-expanded','false'); btn.setAttribute('aria-label','Apri menu'); }
-        if(backdrop) backdrop.classList.add('hidden');
-        document.body.classList.remove('mobile-menu-open');
-      }
-      function openMenu(){
-        var menu=byId('topbarMenu'), btn=byId('menuToggle'), backdrop=byId('mobileMenuBackdrop');
-        if(menu) menu.classList.add('is-open');
-        if(btn){ btn.classList.add('is-open'); btn.setAttribute('aria-expanded','true'); btn.setAttribute('aria-label','Chiudi menu'); }
-        if(backdrop) backdrop.classList.remove('hidden');
-        document.body.classList.add('mobile-menu-open');
-      }
-      function toggleMenu(){
-        var menu=byId('topbarMenu');
-        if(menu && menu.classList.contains('is-open')) closeMenu(); else openMenu();
-      }
-      function bindMobileMenu(){
-        var btn=byId('menuToggle'), menu=byId('topbarMenu'), backdrop=byId('mobileMenuBackdrop');
-        if(!btn || !menu || btn.dataset.hardMenuBound === '1') return;
-        btn.dataset.hardMenuBound='1';
-        btn.onclick=function(ev){ ev.preventDefault(); ev.stopPropagation(); toggleMenu(); return false; };
-        if(backdrop){ backdrop.onclick=function(ev){ ev.preventDefault(); closeMenu(); return false; }; }
-        document.addEventListener('click', function(ev){
-          var target=ev.target;
-          if(!isMobile()) return;
-          if(menu.classList.contains('is-open') && target && target.closest && target.closest('#topbarMenu button')) closeMenu();
-        }, true);
-        document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape') closeMenu(); });
-        window.addEventListener('resize', function(){ if(!isMobile()) closeMenu(); });
-      }
-      if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindMobileMenu); else bindMobileMenu();
-      window.VSLMobileMenu = { open: openMenu, close: closeMenu, toggle: toggleMenu, bind: bindMobileMenu };
-    })();
-  </script>
-
 </body>
 </html>
