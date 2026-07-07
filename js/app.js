@@ -5407,3 +5407,17 @@ document.addEventListener("click",function(event){
   }
   document.addEventListener("DOMContentLoaded",()=>setTimeout(bindMegaAttendance,1400));
 })();
+
+
+/* ===== PATCH BRAND VSL OPERATIONS WORKFORCE 2026-07-07 ===== */
+(function(){
+  document.addEventListener("DOMContentLoaded", function(){
+    document.title = "VSL Operations Workforce";
+    const mark = document.querySelector(".brand-mark");
+    if (mark) mark.textContent = "VOW";
+    const title = document.querySelector(".app-title");
+    if (title) title.textContent = "VSL Operations Workforce";
+    const subtitle = document.querySelector(".app-subtitle");
+    if (subtitle) subtitle.textContent = "People • Production • Planning";
+  });
+})();
