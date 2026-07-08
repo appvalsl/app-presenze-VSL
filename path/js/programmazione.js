@@ -54,7 +54,7 @@
     const articleModVar=(r)=>articleModVarFromFull(r.articolo);
     const rowTime=(r)=>{
       const direct=num(r.tempo_sec,0);
-      const calc=num(r.tempo_standard_sec,0)*num(r.test_2,0)*60;
+      const calc =  num(r.tempo_standard_sec,0) *  num(r.test_2,0);
       return direct>0?direct:calc;
     };
     const matchByKey=(r,keyObj)=>{
