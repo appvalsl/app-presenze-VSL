@@ -34,7 +34,8 @@
     dbFrom: '',
     dbTo: '',
     dbLine: '',
-    dbSearch: ''
+    dbSearch: '',
+    editorReady: false
   };
 
   function show(el, message, type) {
@@ -187,7 +188,7 @@
           </div>
           <div class="actions toolbar"><button id="loadProgrammingDatabaseBtn" class="btn btn-primary" type="button">Carica database programma</button></div>
           <div id="programmingDatabaseStats" class="summary-box compact"></div>
-          <div class="table-wrap"><table class="attendance-table programming-db-table"><thead><tr><th>Periodo</th><th>Titolo</th><th>Linea</th><th>Articolo</th><th>Codice forma</th><th>Qta forme</th><th>Quantita giorni</th><th>Note</th></tr></thead><tbody id="programmingDatabaseBody"></tbody></table></div>
+          <div class="table-wrap"><table class="attendance-table programming-db-table"><thead><tr><th>Data</th><th>Titolo</th><th>Linea</th><th>Articolo</th><th>Codice forma</th><th>Qta forme</th><th>Quantita</th><th>Note</th></tr></thead><tbody id="programmingDatabaseBody"></tbody></table></div>
         </div>
       </div>
 
@@ -218,8 +219,6 @@
             <div class="field"><label>&nbsp;</label><button id="programmingGenerateBtn" class="btn btn-primary btn-block" type="button">Apri editor periodo</button></div>
           </div>
         </div>
-
-        <div id="programmingDailySummary" class="summary-box programming-daily-summary"></div>
 
         <div class="card programming-table-card">
           <div class="rows-top compact-row-top">
@@ -311,7 +310,6 @@
     $('formsWarehousePanel')?.classList.toggle('hidden', page !== 'editor' || !state.isAdmin);
     if (page === 'database') loadProgramDatabase();
     if (page === 'editor') {
-      if (!state.dates.length) generatePeriod();
       renderFormsWarehouse();
       renderEditor();
     }
@@ -463,25 +461,22 @@
     const dates = eachDate(from, to);
     if (!dates.length) { show($('programmingMessage'), 'Seleziona un periodo valido. Massimo 31 giorni.', 'error'); return; }
     state.dates = dates;
+    state.editorReady = true;
     state.rows = state.rows.length ? state.rows.map(ensureRowQuantities) : [newRow('CALZOLERIA 1'), newRow('CALZOLERIA 2')];
     sortRows(); renderEditor();
   }
   function renderDailySummary() {
-    const box = $('programmingDailySummary'); if (!box) return;
-    if (!state.dates.length) { box.innerHTML = ''; return; }
-    const cells = [];
-    PROGRAM_LINES.forEach((line) => {
-      state.dates.forEach((d) => {
-        const total = state.rows.filter((r) => r.line_name === line).reduce((s, r) => s + num(r.quantities?.[d], 0), 0);
-        cells.push(`<div class="summary-item programming-summary-item"><span class="label">${esc(LINE_LABEL[line])} - ${esc(formatDateIT(d))}</span><span class="value">${esc(total)} paia</span></div>`);
-      });
-    });
-    box.innerHTML = cells.join('');
+    const box = $('programmingDailySummary');
+    if (box) box.innerHTML = '';
   }
   function renderEditor() {
-    sortRows(); renderDailySummary();
-    const wrap = $('programmingTableWrap'); if (!wrap) return;
-    if (!state.dates.length) { wrap.innerHTML = '<div class="empty-state">Seleziona un periodo e premi “Apri editor periodo”.</div>'; return; }
+    sortRows();
+    const wrap = $('programmingTableWrap');
+    if (!wrap) return;
+    if (!state.editorReady || !state.dates.length) {
+      wrap.innerHTML = '<div class="empty-state programming-period-empty"><strong>Seleziona il periodo</strong><span>Scegli dal giorno e al giorno, poi premi “Apri editor periodo”. Se selezioni dal 07/07 al 09/07, l editor mostrera 07/07, 08/07 e 09/07.</span></div>';
+      return;
+    }
     const dateHeads = state.dates.map((d) => { const f = formatDateHeader(d); return `<th class="date-col"><div>${esc(f.date)}</div><small>${esc(f.weekday)}</small></th>`; }).join('');
     const body = state.rows.map((row, index) => {
       const qCells = state.dates.map((d) => `<td class="qty-day-cell"><input type="number" min="0" step="1" inputmode="numeric" data-row-index="${index}" data-field="qty" data-date="${esc(d)}" value="${esc(row.quantities?.[d] || '')}" placeholder="0"></td>`).join('');
@@ -496,8 +491,12 @@
         <td class="action-cell"><button class="btn btn-danger btn-small" type="button" data-action="delete-row" data-row-index="${index}">Elimina</button></td>
       </tr>`;
     }).join('');
-    const totals = state.dates.map((d) => `<td class="total-cell">${esc(state.rows.reduce((s, r) => s + num(r.quantities?.[d], 0), 0))}</td>`).join('');
-    wrap.innerHTML = `<table class="attendance-table programming-table"><thead><tr><th>Linea</th><th>Codice forma</th><th>Qta forme</th><th>Articolo</th>${dateHeads}<th>Note</th><th>Azioni</th></tr></thead><tbody>${body}</tbody><tfoot><tr><td><strong>Totale</strong></td><td></td><td></td><td></td>${totals}<td></td><td></td></tr></tfoot></table>`;
+    const subtotalRow = (label, line, cls) => {
+      const totals = state.dates.map((d) => `<td class="subtotal-cell">${esc(state.rows.filter((r) => r.line_name === line).reduce((s, r) => s + num(r.quantities?.[d], 0), 0))}</td>`).join('');
+      return `<tr class="${cls}"><td colspan="4"><strong>${esc(label)}</strong></td>${totals}<td></td><td></td></tr>`;
+    };
+    const totalCells = state.dates.map((d) => `<td class="total-cell">${esc(state.rows.reduce((s, r) => s + num(r.quantities?.[d], 0), 0))}</td>`).join('');
+    wrap.innerHTML = `<table class="attendance-table programming-table"><thead><tr><th>Linea</th><th>Codice forma</th><th>Qta forme</th><th>Articolo</th>${dateHeads}<th>Note</th><th>Azioni</th></tr></thead><tbody>${body}</tbody><tfoot>${subtotalRow('Parziale VSL1', 'CALZOLERIA 1', 'partial-row partial-vsl1')}${subtotalRow('Parziale VSL2', 'CALZOLERIA 2', 'partial-row partial-vsl2')}<tr class="grand-total-row"><td colspan="4"><strong>Totale generale</strong></td>${totalCells}<td></td><td></td></tr></tfoot></table>`;
   }
   function handleEditorInput(event) {
     const target = event.target; if (!target || target.dataset.rowIndex === undefined) return;
@@ -515,7 +514,7 @@
   }
   async function saveProgram() {
     hide($('programmingMessage'));
-    if (!state.dates.length) { show($('programmingMessage'), 'Prima seleziona il periodo.', 'error'); return; }
+    if (!state.editorReady || !state.dates.length) { show($('programmingMessage'), 'Prima seleziona il periodo e apri l editor.', 'error'); return; }
     state.rows.forEach(applyLookup); sortRows();
     const validRows = state.rows.filter((r) => r.line_name && (r.lookup_code || r.article_code));
     if (!validRows.length) { show($('programmingMessage'), 'Inserisci almeno una riga con articolo/MOD VAR/MOD.', 'error'); return; }
@@ -524,12 +523,31 @@
       const programRes = await client.from('production_programs').insert({ title, start_date: state.dates[0], end_date: state.dates[state.dates.length - 1], created_by: state.user.id }).select().single();
       if (programRes.error) throw programRes.error;
       const programId = programRes.data.id;
-      const payload = validRows.map((r, index) => ({ program_id: programId, sort_order: index + 1, line_name: r.line_name, lookup_code: r.lookup_code || r.article_code, article_code: r.article_code || r.lookup_code, form_code: r.form_code || '', form_qty: num(r.form_qty, 0), quantities_by_date: r.quantities || {}, note: r.note || '', created_by: state.user.id }));
-      const itemsRes = await client.from('production_program_items').insert(payload);
-      if (itemsRes.error) throw itemsRes.error;
-      show($('programmingMessage'), `Programma salvato correttamente: ${payload.length} righe.`, 'success');
+      const dailyRows = [];
+      validRows.forEach((r, rowIndex) => {
+        state.dates.forEach((d) => {
+          dailyRows.push({
+            program_id: programId,
+            program_title: title,
+            production_date: d,
+            sort_order: rowIndex + 1,
+            line_name: r.line_name,
+            lookup_code: r.lookup_code || r.article_code,
+            article_code: r.article_code || r.lookup_code,
+            form_code: r.form_code || '',
+            form_qty: num(r.form_qty, 0),
+            quantity: num(r.quantities?.[d], 0),
+            note: r.note || '',
+            created_by: state.user.id
+          });
+        });
+      });
+      const dailyRes = await client.from('production_program_daily_rows').insert(dailyRows);
+      if (dailyRes.error) throw dailyRes.error;
+      show($('programmingMessage'), `Programma salvato correttamente in formato giornaliero: ${dailyRows.length} righe DATA/CODICI/QUANTITA.`, 'success');
     } catch (error) { show($('programmingMessage'), error.message || 'Errore durante salvataggio programma.', 'error'); }
   }
+
 
   // ===== DATABASE PROGRAMMI =====
   async function loadProgramDatabase() {
@@ -539,58 +557,40 @@
     state.dbTo = $('programmingDbToDate')?.value || state.dbTo || '';
     state.dbLine = $('programmingDbLineFilter')?.value || '';
     state.dbSearch = $('programmingDbSearchInput')?.value || '';
-    let query = client.from('production_programs').select('*').order('start_date', { ascending: false }).order('created_at', { ascending: false }).limit(300);
-    if (state.dbFrom && state.dbTo) query = query.lte('start_date', state.dbTo).gte('end_date', state.dbFrom);
-    else if (state.dbFrom) query = query.gte('end_date', state.dbFrom);
-    else if (state.dbTo) query = query.lte('start_date', state.dbTo);
-    const programsRes = await query;
-    if (programsRes.error) { show($('programmingMessage'), programsRes.error.message || 'Errore caricamento database programma.', 'error'); return; }
-    state.dbPrograms = Array.isArray(programsRes.data) ? programsRes.data : [];
-    const ids = state.dbPrograms.map((p) => p.id).filter(Boolean);
-    if (!ids.length) { state.dbItems = []; renderProgramDatabase(); return; }
-    const itemsRes = await client.from('production_program_items').select('*').in('program_id', ids).order('sort_order', { ascending: true });
-    if (itemsRes.error) { show($('programmingMessage'), itemsRes.error.message || 'Errore caricamento righe programma.', 'error'); return; }
-    state.dbItems = Array.isArray(itemsRes.data) ? itemsRes.data : [];
+    let query = client.from('production_program_daily_rows').select('*').order('production_date', { ascending: false }).order('line_name', { ascending: true }).order('sort_order', { ascending: true }).limit(5000);
+    if (state.dbFrom) query = query.gte('production_date', state.dbFrom);
+    if (state.dbTo) query = query.lte('production_date', state.dbTo);
+    if (state.dbLine) query = query.eq('line_name', state.dbLine);
+    const res = await query;
+    if (res.error) { show($('programmingMessage'), res.error.message || 'Errore caricamento database programma.', 'error'); return; }
+    state.dbPrograms = [];
+    state.dbItems = Array.isArray(res.data) ? res.data : [];
     renderProgramDatabase();
   }
-  function parseQuantities(value) {
-    if (!value) return {};
-    if (typeof value === 'object') return value;
-    try { const p = JSON.parse(value); return p && typeof p === 'object' ? p : {}; } catch (_) { return {}; }
-  }
   function filteredDbRows() {
-    const map = new Map(state.dbPrograms.map((p) => [String(p.id), p]));
     const search = norm(state.dbSearch || '');
-    return state.dbItems.map((item) => ({ item, program: map.get(String(item.program_id)) })).filter(({ item, program }) => {
-      if (!program) return false;
-      if (state.dbLine && item.line_name !== state.dbLine) return false;
-      if (search && !norm([program.title, item.line_name, item.article_code, item.lookup_code, item.form_code, item.note, JSON.stringify(item.quantities_by_date || {})].join(' ')).includes(search)) return false;
+    return state.dbItems.filter((row) => {
+      if (state.dbLine && row.line_name !== state.dbLine) return false;
+      if (search && !norm([row.program_title, row.production_date, row.line_name, row.article_code, row.lookup_code, row.form_code, row.quantity, row.note].join(' ')).includes(search)) return false;
       return true;
-    }).sort((a, b) => String(b.program.start_date || '').localeCompare(String(a.program.start_date || '')) || lineOrder(a.item.line_name) - lineOrder(b.item.line_name) || (a.item.sort_order || 0) - (b.item.sort_order || 0));
+    }).sort((a, b) => String(b.production_date || '').localeCompare(String(a.production_date || '')) || lineOrder(a.line_name) - lineOrder(b.line_name) || (a.sort_order || 0) - (b.sort_order || 0));
   }
   function renderProgramDatabase() {
     const body = $('programmingDatabaseBody'); const stats = $('programmingDatabaseStats'); if (!body || !stats) return;
     const rows = filteredDbRows();
-    const totalQty = rows.reduce((sum, r) => sum + Object.values(parseQuantities(r.item.quantities_by_date)).reduce((s, v) => s + num(v, 0), 0), 0);
-    stats.innerHTML = `<div><span>Programmi trovati</span><strong>${esc(state.dbPrograms.length)}</strong></div><div><span>Righe filtrate</span><strong>${esc(rows.length)}</strong></div><div><span>Quantita totale vista</span><strong>${esc(totalQty)}</strong></div>`;
-    body.innerHTML = rows.map(({ item, program }) => {
-      const q = parseQuantities(item.quantities_by_date);
-      const qText = Object.keys(q).sort().map((d) => `${formatDateIT(d)}: ${q[d] || 0}`).join(' | ');
-      return `<tr><td>${esc(formatDateIT(program.start_date))} - ${esc(formatDateIT(program.end_date))}</td><td>${esc(program.title || '-')}</td><td>${esc(LINE_LABEL[item.line_name] || item.line_name || '-')}</td><td>${esc(item.article_code || item.lookup_code || '-')}</td><td>${esc(item.form_code || '-')}</td><td>${esc(item.form_qty ?? '-')}</td><td>${esc(qText || '-')}</td><td>${esc(item.note || '-')}</td></tr>`;
-    }).join('') || '<tr><td colspan="8">Nessun programma trovato con i filtri selezionati.</td></tr>';
+    const programCount = new Set(rows.map((r) => r.program_id).filter(Boolean)).size;
+    const totalQty = rows.reduce((sum, r) => sum + num(r.quantity, 0), 0);
+    stats.innerHTML = `<div><span>Programmi trovati</span><strong>${esc(programCount)}</strong></div><div><span>Righe DATA/CODICI/QUANTITA</span><strong>${esc(rows.length)}</strong></div><div><span>Quantita totale vista</span><strong>${esc(totalQty)}</strong></div>`;
+    body.innerHTML = rows.map((row) => `<tr><td>${esc(formatDateIT(row.production_date))}</td><td>${esc(row.program_title || '-')}</td><td>${esc(LINE_LABEL[row.line_name] || row.line_name || '-')}</td><td>${esc(row.article_code || row.lookup_code || '-')}</td><td>${esc(row.form_code || '-')}</td><td>${esc(row.form_qty ?? '-')}</td><td>${esc(row.quantity ?? 0)}</td><td>${esc(row.note || '-')}</td></tr>`).join('') || '<tr><td colspan="8">Nessun programma trovato con i filtri selezionati.</td></tr>';
   }
   function exportProgramDatabase() {
     const rows = filteredDbRows();
     if (!rows.length) { show($('programmingMessage'), 'Nessuna riga da esportare con i filtri attuali.', 'info'); return; }
-    const out = [['PERIODO DAL', 'PERIODO AL', 'TITOLO', 'LINEA', 'ARTICOLO', 'CODICE FORMA', 'QTA FORME', 'DATA', 'QUANTITA', 'NOTE']];
-    rows.forEach(({ item, program }) => {
-      const q = parseQuantities(item.quantities_by_date);
-      const dates = Object.keys(q).sort();
-      if (!dates.length) dates.push('');
-      dates.forEach((d) => out.push([formatDateIT(program.start_date), formatDateIT(program.end_date), program.title || '', LINE_LABEL[item.line_name] || item.line_name || '', item.article_code || item.lookup_code || '', item.form_code || '', item.form_qty ?? '', d ? formatDateIT(d) : '', d ? q[d] || 0 : '', item.note || '']));
-    });
+    const out = [['DATA', 'TITOLO', 'LINEA', 'ARTICOLO', 'CODICE RICERCA', 'CODICE FORMA', 'QTA FORME', 'QUANTITA', 'NOTE']];
+    rows.forEach((row) => out.push([formatDateIT(row.production_date), row.program_title || '', LINE_LABEL[row.line_name] || row.line_name || '', row.article_code || '', row.lookup_code || '', row.form_code || '', row.form_qty ?? '', row.quantity ?? 0, row.note || '']));
     downloadCsv('database_programma_filtrato.csv', out);
   }
+
 
   // ===== EXPORT / TEMPLATE =====
   function downloadFormsTemplate() {
