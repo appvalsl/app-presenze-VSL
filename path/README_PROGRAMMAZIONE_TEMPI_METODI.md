@@ -1,0 +1,98 @@
+# Programmazione + Tempi e Metodi
+
+## Nuove sezioni
+
+- **Programmazione**: crea, modifica, esporta e consulta programmi manovia.
+- **Tempi e Metodi**: sezione admin per caricare la tabella `ARTICOLI LAVORAZIONI TEMPI CICLI DI PRODUZIONE`.
+
+## Logica tempi
+
+Nel programma manovia l'utente puo inserire:
+
+- ARTICOLO completo: il sistema prende dal sesto carattere 6 caratteri, trasformandolo in MOD VAR.
+- MOD VAR da 6 caratteri: il sistema cerca quel valore nella colonna `articolo` della tabella tempi.
+- MOD da 3 caratteri: il sistema cerca quel valore nella colonna `mod`.
+- Se non trova nulla, usa come fallback il tempo medio del `393VOD`.
+
+Il tempo unitario considera solo le fasi:
+
+- Caricamento manovia
+- Montaggio
+- Preparazione alla suolatura
+- Suolatura
+
+Il tempo totale giornaliero e calcolato come:
+
+```text
+tempo unitario articolo * quantita del giorno
+```
+
+## SQL
+
+Eseguire in Supabase SQL Editor:
+
+```text
+sql/2026_07_08_programmazione_tempi_metodi.sql
+```
+
+## File principali aggiunti
+
+- `js/programmazione.js`
+- `js/tempi-metodi.js`
+- `sql/2026_07_08_programmazione_tempi_metodi.sql`
+
+## Aggiornamento import Tempi e Metodi
+
+Il caricamento tempi ora supporta direttamente il file:
+
+```text
+VSL Bucine - Tempi cicli di lavorazione per articolo.xlsx
+```
+
+Il sistema legge il foglio:
+
+```text
+Articoli_lavorazioni
+```
+
+E importa le colonne:
+
+```text
+Articolo
+Test
+Fase
+Lavorazione
+Tempo medio di lavorazione (s)
+```
+
+Le colonne calcolate rimangono:
+
+```text
+MOD = primi 3 caratteri di Articolo
+TEMPO = Test * Tempo medio di lavorazione (s)
+```
+
+## Fix editor quantita, XLSM e saturazione
+
+- Il caricamento Tempi e Metodi accetta anche file `.xlsm`.
+- Il campo quantita nell editor non viene piu ridisegnato a ogni tasto premuto: resta editabile in modo fluido.
+- Il tempo viene calcolato in secondi moltiplicando `Tempo medio di lavorazione` per `60` e per `Test`.
+- Nel programma manovia i tempi sono mostrati in secondi.
+- Sotto FTE reali programmabili VSL1/VSL2 sono state aggiunte le righe Saturazione VSL1/VSL2.
+
+
+## Fix V3.1 live tempi e input pulito
+
+- Le quantità non partono più con `0` dentro il campo: il campo è vuoto e mostra solo placeholder `0`.
+- Durante la digitazione le quantità vengono ripulite dagli zeri iniziali, quindi `03000` diventa `3000`.
+- I tempi si aggiornano in diretta mentre l'utente digita le quantità, senza ridisegnare tutto l'editor.
+- Il lookup dei tempi è più robusto: cerca sia `Articolo`, sia il MOD VAR estratto dall'articolo completo, sia `MOD`.
+- Se `tempo_sec` non è valorizzato nel database, il sistema ricalcola il tempo come `tempo_standard_sec * test_2 * 60`.
+
+
+## Fix V3.2 tempi sempre uguali e default 15 minuti
+
+- Il caricamento dei tempi nel programma ora legge tutte le righe paginate della tabella `production_cycle_times`, non solo un blocco parziale.
+- Le fasi sono riconosciute in modo più elastico: per esempio `Caricamento` viene considerato valido come `Caricamento manovia`.
+- Se non viene trovata una corrispondenza reale nei tempi, il fallback non usa più il 393VOD: usa un valore fisso di default pari a 15 minuti, cioè 900 secondi.
+- Se il database ha `tempo_sec` a 0, il sistema ricalcola il tempo come `tempo_standard_sec * test_2 * 60`.
